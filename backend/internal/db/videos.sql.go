@@ -12,12 +12,10 @@ import (
 )
 
 const createVideo = `-- name: CreateVideo :one
-INSERT INTO videos (
-  batch_id, original_filename, original_size, status
-) VALUES (
-  $1, $2, $3, $4
-)
-RETURNING id, batch_id, original_filename, optimized_filename, original_size, optimized_size, status, error_message, created_at, updated_at
+INSERT INTO videos(batch_id, original_filename, original_size, status)
+  VALUES ($1, $2, $3, $4)
+RETURNING
+  id, batch_id, original_filename, optimized_filename, original_size, optimized_size, status, error_message, created_at, updated_at
 `
 
 type CreateVideoParams struct {
@@ -51,8 +49,12 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 }
 
 const getVideo = `-- name: GetVideo :one
-SELECT id, batch_id, original_filename, optimized_filename, original_size, optimized_size, status, error_message, created_at, updated_at FROM videos
-WHERE id = $1
+SELECT
+  id, batch_id, original_filename, optimized_filename, original_size, optimized_size, status, error_message, created_at, updated_at
+FROM
+  videos
+WHERE
+  id = $1
 `
 
 func (q *Queries) GetVideo(ctx context.Context, id int32) (Video, error) {
@@ -74,8 +76,12 @@ func (q *Queries) GetVideo(ctx context.Context, id int32) (Video, error) {
 }
 
 const getVideosByBatch = `-- name: GetVideosByBatch :many
-SELECT id, batch_id, original_filename, optimized_filename, original_size, optimized_size, status, error_message, created_at, updated_at FROM videos
-WHERE batch_id = $1
+SELECT
+  id, batch_id, original_filename, optimized_filename, original_size, optimized_size, status, error_message, created_at, updated_at
+FROM
+  videos
+WHERE
+  batch_id = $1
 `
 
 func (q *Queries) GetVideosByBatch(ctx context.Context, batchID int32) ([]Video, error) {
@@ -110,9 +116,15 @@ func (q *Queries) GetVideosByBatch(ctx context.Context, batchID int32) ([]Video,
 }
 
 const updateVideoSizes = `-- name: UpdateVideoSizes :exec
-UPDATE videos
-SET optimized_filename = $1, optimized_size = $2, status = $3, updated_at = NOW()
-WHERE id = $4
+UPDATE
+  videos
+SET
+  optimized_filename = $1,
+  optimized_size = $2,
+  status = $3,
+  updated_at = NOW()
+WHERE
+  id = $4
 `
 
 type UpdateVideoSizesParams struct {
@@ -133,9 +145,14 @@ func (q *Queries) UpdateVideoSizes(ctx context.Context, arg UpdateVideoSizesPara
 }
 
 const updateVideoStatus = `-- name: UpdateVideoStatus :exec
-UPDATE videos
-SET status = $1, error_message = $2, updated_at = NOW()
-WHERE id = $3
+UPDATE
+  videos
+SET
+  status = $1,
+  error_message = $2,
+  updated_at = NOW()
+WHERE
+  id = $3
 `
 
 type UpdateVideoStatusParams struct {
