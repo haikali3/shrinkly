@@ -11,6 +11,7 @@ type Config struct {
 	DatabaseURL  string `env:"SHRINKLY_DATABASE_URL, required"`
 	MaxWorkers   int    `env:"SHRINKLY_MAX_WORKERS, default=4"`
 	CRF          int    `env:"SHRINKLY_CRF, default=26"`
+	Codec        string `env:"SHRINKLY_CODEC, default=libx265"`
 	Preset       string `env:"SHRINKLY_PRESET, default=medium"`
 	AudioBitrate string `env:"SHRINKLY_AUDIO_BITRATE, default=128k"`
 	InputDir     string `env:"SHRINKLY_INPUT_DIR, default=./input"`

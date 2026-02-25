@@ -56,7 +56,7 @@ func (p *Pool) Process(tasks []Task) []TaskResult {
 			defer wg.Done()
 			defer func() { <-slots }()
 
-			res, err := Encode(t.InputPath, t.OutputPath, p.cfg)
+			origSize, optSize, err := Encode(t.InputPath, t.OutputPath, p.cfg)
 			if err != nil {
 				// 4. capture on TaskResult per task
 				results[idx] = TaskResult{
@@ -69,10 +69,9 @@ func (p *Pool) Process(tasks []Task) []TaskResult {
 			results[idx] = TaskResult{
 				VideoID:       t.VideoID,
 				Success:       true,
-				OriginalSize:  res.OriginalSize,
-				OptimizedSize: res.OptimizedSize,
+				OriginalSize:  origSize,
+				OptimizedSize: optSize,
 			}
-
 		}(i, task)
 	}
 	wg.Wait()
