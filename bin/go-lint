@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# This script should be run in the developer runtime: bin/shell bin/lint
+set -euo pipefail
+
+pushd "$(dirname "$0")/.." >/dev/null
+
+config_file=""
+for candidate in .golangci.yml .golangci.yaml .golangci.toml .golangci.json; do
+    if [[ -f "$candidate" ]]; then
+        config_file="$candidate"
+        break
+    fi
+done
+
+if [[ -n "$config_file" ]]; then
+    golangci-lint --config "$config_file" run "$@"
+else
+    golangci-lint run "$@"
+fi

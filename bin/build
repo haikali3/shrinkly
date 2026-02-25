@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euo pipefail
+
+pushd "$(dirname "$0")/.." >/dev/null
+
+OUTPUT_DIR="out"
+mkdir -p "$OUTPUT_DIR"
+
+usage() {
+  echo "Usage: ./bin/build [service|all]"
+  echo ""
+  echo "Services:"
+  for dir in cmd/*/; do
+    echo "  $(basename "$dir")"
+  done
+  echo ""
+  echo "  all   Build all services (default)"
+  exit 1
+}
+
+build_binary() {
+  local name="$1"
+  echo "Building ${name}..."
+  go build -o "${OUTPUT_DIR}/${name}" "./cmd/${name}"
+  echo "  -> ${OUTPUT_DIR}/${name}"
+}
+
+TARGET="${1:-all}"
+
+if [ "$TARGET" = "all" ]; then
+  for dir in cmd/*/; do
+    build_binary "$(basename "$dir")"
+  done
+elif [ -d "./cmd/${TARGET}" ]; then
+  build_binary "$TARGET"
+else
+  echo "Error: unknown service '${TARGET}'"
+  usage
+fi
+
+echo "Build complete."

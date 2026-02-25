@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+
+pushd "$(dirname "$0")/.." >/dev/null
+
+usage() {
+  echo "Usage: ./bin/test [options]"
+  echo ""
+  echo "Options:"
+  echo "  (no args)      Run all tests"
+  echo "  -v             Run all tests with verbose output"
+  echo "  -race          Run all tests with race detector"
+  echo "  -cover         Run all tests with coverage report"
+  echo "  ./path/...     Run tests for a specific package"
+  exit 1
+}
+
+case "${1:-}" in
+  -h|--help)
+    usage
+    ;;
+  *)
+    go test ./... "$@"
+    ;;
+esac
