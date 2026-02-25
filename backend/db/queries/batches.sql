@@ -1,11 +1,3 @@
--- name: GetVideo :one
-SELECT
-  *
-FROM
-  videos
-WHERE
-  id = $1;
-
 -- name: CreateBatch :one
 INSERT INTO batches(total_files, status)
   VALUES ($1, $2)
