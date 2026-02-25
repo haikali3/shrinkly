@@ -5,6 +5,8 @@ import (
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/db"
 	"shrinkly/backend/internal/worker"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Manager struct {
@@ -21,14 +23,14 @@ func NewManager(queries *db.Queries, pool *worker.Pool, cfg *config.Config) *Man
 	}
 }
 
-func (m *Manager) CreateBatch(ctx context.Context, filePath []string) {
+func (m *Manager) CreateBatch(ctx context.Context, filePath []string) error {
 	//  1. create batch record
 	batch, err := m.queries.CreateBatch(ctx, db.CreateBatchParams{
 		TotalFiles: int32(len(filePath)),
 		Status:     "pending",
 	})
 	if err != nil {
-		return
+		return err
 	}
 
 	// 2. create a video record for each file
@@ -41,8 +43,41 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) {
 			Status:           "pending",
 		})
 		if err != nil {
-			continue
+			return err
 		}
 		videos = append(videos, video)
 	}
+
+	// 3. build worker tasks
+	tasks := make([]worker.Task, len(videos))
+	for i, video := range videos {
+		tasks[i] = worker.Task{
+			VideoID:    video.ID,
+			InputPath:  video.OriginalFilename,
+			OutputPath: m.cfg.OutputDir + "/" + video.OriginalFilename,
+		}
+	}
+
+	// 4. send to pool
+	results := m.pool.Process(tasks)
+
+	// 5. update video records based on results
+	for i, r := range results {
+		if r.Success {
+			m.queries.UpdateVideoSizes(ctx, db.UpdateVideoSizesParams{
+				ID:                r.VideoID,
+				OptimizedFilename: pgtype.Text{String: tasks[i].OutputPath, Valid: true},
+				OptimizedSize:     pgtype.Int8{Int64: r.OptimizedSize, Valid: true},
+				Status:            "completed",
+			})
+		} else {
+			m.queries.UpdateVideoStatus(ctx, db.UpdateVideoStatusParams{
+				ID:           r.VideoID,
+				Status:       "failed",
+				ErrorMessage: pgtype.Text{String: r.Error.Error(), Valid: true},
+			})
+		}
+	}
+
+	return nil
 }
