@@ -16,11 +16,11 @@ shrinkly/
   │   ├── storage/
   │   │   └── storage.go           # File storage (local disk / S3)
   │   └── db/
+  │       ├── migrations/
+  │       │   └── 001_init.sql             # Batch + Video tables
   │       ├── db.go                # DB connection setup
   │       ├── batch.go             # Batch table queries
   │       └── video.go             # Video table queries
-  ├── migrations/
-  │   └── 001_init.sql             # Batch + Video tables
   ├── config/
   │   └── config.go                # App config (concurrency, CRF, paths)
   ├── docs/
