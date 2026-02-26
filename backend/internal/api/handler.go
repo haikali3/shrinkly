@@ -36,6 +36,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 
 		dstPath := h.Cfg.InputDir + "/" + fileHeader.Filename
 		if err := saveFile(src, dstPath); err != nil {
+			src.Close()
 			http.Error(w, "failed to save file", http.StatusInternalServerError)
 			return
 		}
