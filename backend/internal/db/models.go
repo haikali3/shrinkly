@@ -12,9 +12,12 @@ type Batch struct {
 	ID                 int32
 	TotalFiles         int32
 	ProcessedFiles     int32
+	FailedCount        int32
 	TotalOriginalSize  int64
 	TotalOptimizedSize int64
 	Status             string
+	DurationSeconds    pgtype.Int4
+	CompressionRatio   pgtype.Float8
 	CreatedAt          pgtype.Timestamptz
 	UpdatedAt          pgtype.Timestamptz
 }

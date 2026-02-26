@@ -13,7 +13,7 @@ const createBatch = `-- name: CreateBatch :one
 INSERT INTO batches(total_files, status)
   VALUES ($1, $2)
 RETURNING
-  id, total_files, processed_files, total_original_size, total_optimized_size, status, created_at, updated_at
+  id, total_files, processed_files, failed_count, total_original_size, total_optimized_size, status, duration_seconds, compression_ratio, created_at, updated_at
 `
 
 type CreateBatchParams struct {
@@ -28,9 +28,12 @@ func (q *Queries) CreateBatch(ctx context.Context, arg CreateBatchParams) (Batch
 		&i.ID,
 		&i.TotalFiles,
 		&i.ProcessedFiles,
+		&i.FailedCount,
 		&i.TotalOriginalSize,
 		&i.TotalOptimizedSize,
 		&i.Status,
+		&i.DurationSeconds,
+		&i.CompressionRatio,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -39,7 +42,7 @@ func (q *Queries) CreateBatch(ctx context.Context, arg CreateBatchParams) (Batch
 
 const getBatch = `-- name: GetBatch :one
 SELECT
-  id, total_files, processed_files, total_original_size, total_optimized_size, status, created_at, updated_at
+  id, total_files, processed_files, failed_count, total_original_size, total_optimized_size, status, duration_seconds, compression_ratio, created_at, updated_at
 FROM
   batches
 WHERE
@@ -53,9 +56,12 @@ func (q *Queries) GetBatch(ctx context.Context, id int32) (Batch, error) {
 		&i.ID,
 		&i.TotalFiles,
 		&i.ProcessedFiles,
+		&i.FailedCount,
 		&i.TotalOriginalSize,
 		&i.TotalOptimizedSize,
 		&i.Status,
+		&i.DurationSeconds,
+		&i.CompressionRatio,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

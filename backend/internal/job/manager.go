@@ -5,6 +5,7 @@ import (
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/db"
 	"shrinkly/backend/internal/worker"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -89,7 +90,22 @@ func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, e
 		return nil, err
 	}
 
+	videos, err := m.queries.GetVideosByBatch(ctx, batchID)
+	if err != nil {
+		return nil, err
+	}
+
 	// 2. count fail,compute ratio and duraiton
 	// 3. return report
-
+	return &Report{
+		BatchID:            batch.ID,
+		Status:             batch.Status,
+		TotalFiles:         batch.TotalFiles,
+		ProcessedFiles:     batch.ProcessedFiles,
+		FailedCount:        batch.FailedCount,
+		TotalOriginalSize:  batch.TotalOriginalSize,
+		TotalOptimizedSize: batch.TotalOptimizedSize,
+		CompressionRatio:   batch.CompressionRatio.Float64,
+		Duration:           time.Duration(batch.DurationSeconds.Int32),
+	}, nil
 }

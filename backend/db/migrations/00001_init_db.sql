@@ -4,9 +4,12 @@ CREATE TABLE IF NOT EXISTS batches (
   id SERIAL PRIMARY KEY,
   total_files INT NOT NULL,
   processed_files INT NOT NULL DEFAULT 0,
+  failed_count INT NOT NULL DEFAULT 0,
   total_original_size BIGINT NOT NULL,
   total_optimized_size BIGINT NOT NULL,
   status VARCHAR(20) NOT NULL,
+  duration_seconds INT,
+  compression_ratio FLOAT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
