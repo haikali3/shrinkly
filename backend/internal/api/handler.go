@@ -56,7 +56,13 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]int32{"batch_id": batchID})
+}
 
+func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
+	// 1. parse batchID from url
+
+	// 2. call h.Manager.GetBatchReport
+	// 3. return report as json
 }
 
 func saveFile(src io.Reader, dstPath string) error {
