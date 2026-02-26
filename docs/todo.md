@@ -1,4 +1,4 @@
-3. internal/worker/
+<!-- 3. internal/worker/
 
 encoder.go
 - Encode(inputPath, outputPath string, cfg *config.Config) (*Result, error)
@@ -22,7 +22,7 @@ video.sql
 
 manager.go
 - CreateBatch(filePaths []string) (*Batch, error) — insert batch + videos into DB, kick off workers
-- GetBatchReport(batchID) (*Report, error) — total sizes, compression ratio, failed count, duration
+- GetBatchReport(batchID) (*Report, error) — total sizes, compression ratio, failed count, duration -->
 
 6. internal/api/
 

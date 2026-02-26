@@ -12,14 +12,14 @@ import (
 type Manager struct {
 	queries *db.Queries
 	pool    *worker.Pool
-	cfg     *config.Config
+	Cfg     *config.Config
 }
 
 func NewManager(queries *db.Queries, pool *worker.Pool, cfg *config.Config) *Manager {
 	return &Manager{
 		queries: queries,
 		pool:    pool,
-		cfg:     cfg,
+		Cfg:     cfg,
 	}
 }
 
@@ -54,7 +54,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) error {
 		tasks[i] = worker.Task{
 			VideoID:    video.ID,
 			InputPath:  video.OriginalFilename,
-			OutputPath: m.cfg.OutputDir + "/" + video.OriginalFilename,
+			OutputPath: m.Cfg.OutputDir + "/" + video.OriginalFilename,
 		}
 	}
 
