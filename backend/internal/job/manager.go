@@ -81,3 +81,15 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) error {
 
 	return nil
 }
+
+func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, error) {
+	// 1. fetch the batch + videos
+	batch, err := m.queries.GetBatch(ctx, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. count fail,compute ratio and duraiton
+	// 3. return report
+
+}
