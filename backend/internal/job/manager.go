@@ -23,14 +23,14 @@ func NewManager(queries *db.Queries, pool *worker.Pool, cfg *config.Config) *Man
 	}
 }
 
-func (m *Manager) CreateBatch(ctx context.Context, filePath []string) error {
+func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (int32, error) {
 	//  1. create batch record
 	batch, err := m.queries.CreateBatch(ctx, db.CreateBatchParams{
 		TotalFiles: int32(len(filePath)),
 		Status:     "pending",
 	})
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// 2. create a video record for each file
@@ -43,7 +43,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) error {
 			Status:           "pending",
 		})
 		if err != nil {
-			return err
+			return 0, err
 		}
 		videos = append(videos, video)
 	}
@@ -79,7 +79,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) error {
 		}
 	}
 
-	return nil
+	return batch.ID, nil
 }
 
 func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, error) {

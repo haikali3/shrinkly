@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -46,12 +47,16 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call CreateBatch with saved paths
-	if err := h.Manager.CreateBatch(r.Context(), filePaths); err != nil {
+	batchID, err := h.Manager.CreateBatch(r.Context(), filePaths)
+	if err != nil {
 		http.Error(w, "failed to create batch", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]int32{"batch_id": batchID})
+
 }
 
 func saveFile(src io.Reader, dstPath string) error {
