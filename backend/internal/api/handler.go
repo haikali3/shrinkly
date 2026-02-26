@@ -33,22 +33,14 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to open uploaded file", http.StatusInternalServerError)
 			return
 		}
-		defer src.Close()
 
-		// create destination file
 		dstPath := h.Cfg.InputDir + "/" + fileHeader.Filename
-		dst, err := os.Create(dstPath)
-		if err != nil {
+		if err := saveFile(src, dstPath); err != nil {
 			http.Error(w, "failed to save file", http.StatusInternalServerError)
 			return
 		}
-		defer dst.Close()
+		src.Close()
 
-		// copy contents
-		if _, err := io.Copy(dst, src); err != nil {
-			http.Error(w, "failed to write file", http.StatusInternalServerError)
-			return
-		}
 		filePaths = append(filePaths, dstPath)
 	}
 
@@ -59,4 +51,15 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func saveFile(src io.Reader, dstPath string) error {
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	_, err = io.Copy(dst, src)
+	return err
 }
