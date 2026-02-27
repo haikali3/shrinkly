@@ -36,7 +36,7 @@ func main() {
 	manager := job.NewManager(queries, pool, cfg)
 
 	// wire router + start http server
-	handler := api.NewHandler(manager)
+	handler := api.NewHandler(manager, cfg)
 	router := api.NewRouter(handler)
 	fmt.Printf("Server is running on port %s\n", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
