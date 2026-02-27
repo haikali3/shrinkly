@@ -19,6 +19,12 @@ func NewHandler(m *job.Manager) *Handler {
 	return &Handler{Manager: m}
 }
 
+func (h *Handler) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
 func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// 1. parse multipart upload
 	err := r.ParseMultipartForm(32 << 20) // 32MB max memory

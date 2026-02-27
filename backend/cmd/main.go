@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"shrinkly/backend/config"
@@ -11,10 +12,12 @@ import (
 	"shrinkly/backend/internal/worker"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/joho/godotenv"
 )
 
 func main() {
 	// load config
+	godotenv.Load() // load .env file if exists
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
@@ -35,6 +38,7 @@ func main() {
 	// wire router + start http server
 	handler := api.NewHandler(manager)
 	router := api.NewRouter(handler)
+	fmt.Printf("Server is running on port %s\n", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
 		log.Fatal(err)
 	}
