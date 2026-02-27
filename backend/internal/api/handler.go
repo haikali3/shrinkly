@@ -3,11 +3,10 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
-	"os"
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/job"
+	"shrinkly/backend/internal/storage"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -56,7 +55,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		dstPath := h.Cfg.InputDir + "/" + fileHeader.Filename
-		if err := saveFile(src, dstPath); err != nil {
+		if err := storage.SaveFile(src, dstPath); err != nil {
 			src.Close()
 			http.Error(w, "failed to save file", http.StatusInternalServerError)
 			return
@@ -97,15 +96,4 @@ func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
 	// 3. return report as json
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(report)
-}
-
-func saveFile(src io.Reader, dstPath string) error {
-	dst, err := os.Create(dstPath)
-	if err != nil {
-		return err
-	}
-	defer dst.Close()
-
-	_, err = io.Copy(dst, src)
-	return err
 }
