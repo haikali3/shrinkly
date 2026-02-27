@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"os"
+	"shrinkly/backend/config"
 	"shrinkly/backend/internal/job"
 	"strconv"
 
@@ -12,11 +14,21 @@ import (
 )
 
 type Handler struct {
-	*job.Manager
+	Creator  BatchCreator
+	Reporter BatchReporter
+	Cfg      *config.Config
 }
 
-func NewHandler(m *job.Manager) *Handler {
-	return &Handler{Manager: m}
+type BatchCreator interface {
+	CreateBatch(ctx context.Context, filePaths []string) (int32, error)
+}
+
+type BatchReporter interface {
+	GetBatchReport(ctx context.Context, batchID int32) (*job.Report, error)
+}
+
+func NewHandler(m *job.Manager, cfg *config.Config) *Handler {
+	return &Handler{Creator: m, Reporter: m, Cfg: cfg}
 }
 
 func (h *Handler) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +67,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call CreateBatch with saved paths
-	batchID, err := h.Manager.CreateBatch(r.Context(), filePaths)
+	batchID, err := h.Creator.CreateBatch(r.Context(), filePaths)
 	if err != nil {
 		http.Error(w, "failed to create batch", http.StatusInternalServerError)
 		return
@@ -76,7 +88,7 @@ func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. call h.Manager.GetBatchReport
-	report, err := h.Manager.GetBatchReport(r.Context(), int32(batchID))
+	report, err := h.Reporter.GetBatchReport(r.Context(), int32(batchID))
 	if err != nil {
 		http.Error(w, "batch not found", http.StatusNotFound)
 		return
