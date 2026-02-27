@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"os"
 	"shrinkly/backend/internal/job"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
@@ -60,9 +63,23 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
 	// 1. parse batchID from url
+	idStr := chi.URLParam(r, "id")
+	batchID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid batch id", http.StatusBadRequest)
+		return
+	}
 
 	// 2. call h.Manager.GetBatchReport
+	report, err := h.Manager.GetBatchReport(r.Context(), int32(batchID))
+	if err != nil {
+		http.Error(w, "batch not found", http.StatusNotFound)
+		return
+	}
+
 	// 3. return report as json
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(report)
 }
 
 func saveFile(src io.Reader, dstPath string) error {

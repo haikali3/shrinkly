@@ -3,6 +3,7 @@ module shrinkly/backend
 go 1.25.3
 
 require (
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/sethvargo/go-envconfig v1.3.0
 )
