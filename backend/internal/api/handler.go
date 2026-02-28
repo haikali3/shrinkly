@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/job"
@@ -21,7 +20,7 @@ type Handler struct {
 }
 
 type BatchCreator interface {
-	CreateBatch(ctx context.Context, filePaths []string) (int32, error)
+	CreateBatch(ctx context.Context, filePaths []string) (*job.Report, error)
 }
 
 type BatchReporter interface {
@@ -33,8 +32,7 @@ func NewHandler(m *job.Manager, cfg *config.Config) *Handler {
 }
 
 func (h *Handler) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	writeJSON(w, http.StatusOK, "ok", nil)
 }
 
 func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +40,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(32 << 20) // 32MB max memory
 	if err != nil {
 		logger.Get().Error("failed to parse multipart form", zap.Error(err))
-		http.Error(w, "failed to parse form", http.StatusBadRequest)
+		writeJSON(w, http.StatusBadRequest, "failed to parse form", nil)
 		return
 	}
 
@@ -55,7 +53,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 		src, err := fileHeader.Open()
 		if err != nil {
 			logger.Get().Error("failed to open uploaded file", zap.Error(err))
-			http.Error(w, "failed to open uploaded file", http.StatusInternalServerError)
+			writeJSON(w, http.StatusInternalServerError, "failed to open uploaded file", nil)
 			return
 		}
 
@@ -63,7 +61,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 		if err := storage.SaveFile(src, dstPath); err != nil {
 			src.Close()
 			logger.Get().Error("failed to save uploaded file", zap.Error(err))
-			http.Error(w, "failed to save file", http.StatusInternalServerError)
+			writeJSON(w, http.StatusInternalServerError, "failed to save uploaded file", nil)
 			return
 		}
 		src.Close()
@@ -72,16 +70,14 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call CreateBatch with saved paths
-	batchID, err := h.Creator.CreateBatch(r.Context(), filePaths)
+	report, err := h.Creator.CreateBatch(r.Context(), filePaths)
 	if err != nil {
 		logger.Get().Error("failed to create batch", zap.Error(err))
-		http.Error(w, "failed to create batch", http.StatusInternalServerError)
+		writeJSON(w, http.StatusInternalServerError, "failed to create batch", nil)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]int32{"batch_id": batchID})
+	writeJSON(w, http.StatusCreated, "batch created", report)
 }
 
 func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +86,7 @@ func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
 	batchID, err := strconv.Atoi(idStr)
 	if err != nil {
 		logger.Get().Error("failed to parse batch id", zap.Error(err))
-		http.Error(w, "invalid batch id", http.StatusBadRequest)
+		writeJSON(w, http.StatusBadRequest, "invalid batch id", nil)
 		return
 	}
 
@@ -98,11 +94,10 @@ func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
 	report, err := h.Reporter.GetBatchReport(r.Context(), int32(batchID))
 	if err != nil {
 		logger.Get().Error("failed to get batch report", zap.Error(err))
-		http.Error(w, "batch not found", http.StatusNotFound)
+		writeJSON(w, http.StatusNotFound, "batch not found", nil)
 		return
 	}
 
 	// 3. return report as json
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(report)
+	writeJSON(w, http.StatusOK, "batch report retrieved", report)
 }
