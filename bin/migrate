@@ -2,7 +2,7 @@
 set -e
 
 MIGRATIONS_DIR="backend/db/migrations"
-DB_URL="${DATABASE_URL:-postgres://postgres:postgres@localhost:5432/chronos?sslmode=disable}"
+DB_URL="${SHRINKLY_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/shrinkly?sslmode=disable}"
 
 # Check for goose
 if ! command -v goose &> /dev/null; then
