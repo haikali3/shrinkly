@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/api"
 	"shrinkly/backend/internal/db"
@@ -23,6 +24,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// create input + output directories if they don't exist
+	os.MkdirAll(cfg.InputDir, 0755)
+	os.MkdirAll(cfg.OutputDir, 0755)
 
 	// init logger
 	logger.Init()

@@ -4,9 +4,11 @@ import (
 	"context"
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/db"
+	"shrinkly/backend/internal/logger"
 	"shrinkly/backend/internal/worker"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"go.uber.org/zap"
 )
 
 type Manager struct {
@@ -71,6 +73,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (int32, er
 				Status:            "completed",
 			})
 		} else {
+			logger.Get().Error("encode failed", zap.Int32("video_id", r.VideoID), zap.Error(r.Error))
 			m.queries.UpdateVideoStatus(ctx, db.UpdateVideoStatusParams{
 				ID:           r.VideoID,
 				Status:       "failed",
