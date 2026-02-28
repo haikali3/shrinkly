@@ -44,7 +44,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, 
 		info, err := os.Stat(path)
 		if err != nil {
 			logger.Get().Error("failed to stat file", zap.String("path", path), zap.Error(err))
-			continue
+			return nil, err
 		}
 		video, err := m.queries.CreateVideo(ctx, db.CreateVideoParams{
 			BatchID:          batch.ID,
