@@ -9,6 +9,7 @@ import (
 	"shrinkly/backend/internal/api"
 	"shrinkly/backend/internal/db"
 	"shrinkly/backend/internal/job"
+	"shrinkly/backend/internal/logger"
 	"shrinkly/backend/internal/worker"
 
 	"github.com/jackc/pgx/v5"
@@ -16,12 +17,16 @@ import (
 )
 
 func main() {
-	// load config
-	godotenv.Load() // load .env file if exists
+
+	godotenv.Load()
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// init logger
+	logger.Init()
+	defer logger.Sync()
 
 	// connect to db
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseURL)

@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/job"
+	"shrinkly/backend/internal/logger"
 	"shrinkly/backend/internal/storage"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type Handler struct {
@@ -39,6 +41,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// 1. parse multipart upload
 	err := r.ParseMultipartForm(32 << 20) // 32MB max memory
 	if err != nil {
+		logger.Get().Error("failed to parse multipart form", zap.Error(err))
 		http.Error(w, "failed to parse form", http.StatusBadRequest)
 		return
 	}
@@ -50,6 +53,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 		// open the uploaded files
 		src, err := fileHeader.Open()
 		if err != nil {
+			logger.Get().Error("failed to open uploaded file", zap.Error(err))
 			http.Error(w, "failed to open uploaded file", http.StatusInternalServerError)
 			return
 		}
@@ -57,6 +61,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 		dstPath := h.Cfg.InputDir + "/" + fileHeader.Filename
 		if err := storage.SaveFile(src, dstPath); err != nil {
 			src.Close()
+			logger.Get().Error("failed to save uploaded file", zap.Error(err))
 			http.Error(w, "failed to save file", http.StatusInternalServerError)
 			return
 		}
@@ -68,6 +73,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// call CreateBatch with saved paths
 	batchID, err := h.Creator.CreateBatch(r.Context(), filePaths)
 	if err != nil {
+		logger.Get().Error("failed to create batch", zap.Error(err))
 		http.Error(w, "failed to create batch", http.StatusInternalServerError)
 		return
 	}
@@ -82,6 +88,7 @@ func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	batchID, err := strconv.Atoi(idStr)
 	if err != nil {
+		logger.Get().Error("failed to parse batch id", zap.Error(err))
 		http.Error(w, "invalid batch id", http.StatusBadRequest)
 		return
 	}
@@ -89,6 +96,7 @@ func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
 	// 2. call h.Manager.GetBatchReport
 	report, err := h.Reporter.GetBatchReport(r.Context(), int32(batchID))
 	if err != nil {
+		logger.Get().Error("failed to get batch report", zap.Error(err))
 		http.Error(w, "batch not found", http.StatusNotFound)
 		return
 	}
