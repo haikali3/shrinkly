@@ -12,4 +12,13 @@ type Report struct {
 	TotalOptimizedSize int64         `json:"total_optimized_size"`
 	CompressionRatio   float64       `json:"compression_ratio"`
 	Duration           time.Duration `json:"duration"`
+	Videos             []VideoResult `json:"videos"`
+}
+
+type VideoResult struct {
+	VideoID       int32  `json:"video_id"`
+	Filename      string `json:"filename"`
+	OriginalSize  int64  `json:"original_size"`
+	OptimizedSize int64  `json:"optimized_size"`
+	Status        string `json:"status"`
 }
