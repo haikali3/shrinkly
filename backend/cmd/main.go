@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"shrinkly/backend/config"
@@ -51,6 +50,5 @@ func main() {
 	logger.Get().Info("server started", zap.String("port", cfg.Port))
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
 		logger.Get().Error("failed to start server", zap.Error(err))
-		log.Fatal(err)
 	}
 }

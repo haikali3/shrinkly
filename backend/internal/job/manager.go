@@ -69,19 +69,25 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, 
 	// 5. update video records based on results
 	for i, r := range results {
 		if r.Success {
-			m.queries.UpdateVideoSizes(ctx, db.UpdateVideoSizesParams{
+			if err := m.queries.UpdateVideoSizes(ctx, db.UpdateVideoSizesParams{
 				ID:                r.VideoID,
 				OptimizedFilename: pgtype.Text{String: tasks[i].OutputPath, Valid: true},
 				OptimizedSize:     pgtype.Int8{Int64: r.OptimizedSize, Valid: true},
 				Status:            "completed",
-			})
+			}); err != nil {
+				logger.Get().Error("failed to update video sizes", zap.Int32("video_id", r.VideoID), zap.Error(err))
+			}
+
 		} else {
 			logger.Get().Error("encode failed", zap.Int32("video_id", r.VideoID), zap.Error(r.Error))
-			m.queries.UpdateVideoStatus(ctx, db.UpdateVideoStatusParams{
+			if err := m.queries.UpdateVideoStatus(ctx, db.UpdateVideoStatusParams{
 				ID:           r.VideoID,
 				Status:       "failed",
 				ErrorMessage: pgtype.Text{String: r.Error.Error(), Valid: true},
-			})
+			}); err != nil {
+				logger.Get().Error("failed to update video status", zap.Int32("video_id", r.VideoID), zap.Error(err))
+			}
+
 		}
 	}
 
@@ -96,12 +102,15 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, 
 	}
 
 	// 6. update batch record
-	m.queries.UpdateBatchProgress(ctx, db.UpdateBatchProgressParams{
+	if err := m.queries.UpdateBatchProgress(ctx, db.UpdateBatchProgressParams{
 		ID:                 batch.ID,
 		ProcessedFiles:     processedCount,
 		TotalOriginalSize:  totalOriginalSize,
 		TotalOptimizedSize: totalOptimizedSize,
-	})
+	}); err != nil {
+		logger.Get().Error("failed to update batch progress", zap.Int32("batch_id", batch.ID), zap.Error(err))
+		return nil, err
+	}
 
 	return m.GetBatchReport(ctx, batch.ID)
 }
