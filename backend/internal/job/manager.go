@@ -118,6 +118,15 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, 
 		return nil, err
 	}
 
+	// 7. update batch status
+	if err := m.queries.UpdateBatchStatus(ctx, db.UpdateBatchStatusParams{
+		ID:     batch.ID,
+		Status: "completed",
+	}); err != nil {
+		logger.Get().Error("failed to update batch status", zap.Int32("batch_id", batch.ID), zap.Error(err))
+		return nil, err
+	}
+
 	return m.GetBatchReport(ctx, batch.ID)
 }
 
