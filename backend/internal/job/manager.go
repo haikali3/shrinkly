@@ -42,7 +42,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, 
 		video, err := m.queries.CreateVideo(ctx, db.CreateVideoParams{
 			BatchID:          batch.ID,
 			OriginalFilename: path,
-			OriginalSize:     0,
+			OriginalSize:     batch.TotalOriginalSize,
 			Status:           "pending",
 		})
 		if err != nil {

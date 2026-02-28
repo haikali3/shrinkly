@@ -37,6 +37,7 @@ func (h *Handler) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// 1. parse multipart upload
+	logger.Get().Info("content_type", zap.String("ct", r.Header.Get("Content-Type")))
 	err := r.ParseMultipartForm(32 << 20) // 32MB max memory
 	if err != nil {
 		logger.Get().Error("failed to parse multipart form", zap.Error(err))
