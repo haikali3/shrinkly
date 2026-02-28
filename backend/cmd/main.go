@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 	godotenv.Load()
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal(err)
+		logger.Get().Fatal("failed to load config", zap.Error(err))
 	}
 
 	// create input + output directories if they don't exist
@@ -36,7 +36,7 @@ func main() {
 	// connect to db
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal(err)
+		logger.Get().Fatal("failed to connect to database", zap.Error(err))
 	}
 	defer conn.Close(context.Background())
 	queries := db.New(conn)
@@ -48,8 +48,9 @@ func main() {
 	// wire router + start http server
 	handler := api.NewHandler(manager, cfg)
 	router := api.NewRouter(handler)
-	fmt.Printf("Server is running on port %s\n", cfg.Port)
+	logger.Get().Info("server started", zap.String("port", cfg.Port))
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
+		logger.Get().Error("failed to start server", zap.Error(err))
 		log.Fatal(err)
 	}
 }

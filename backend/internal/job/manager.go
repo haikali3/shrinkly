@@ -33,6 +33,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, 
 		Status:     "pending",
 	})
 	if err != nil {
+		logger.Get().Error("failed to create batch", zap.Error(err))
 		return nil, err
 	}
 
@@ -46,6 +47,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, 
 			Status:           "pending",
 		})
 		if err != nil {
+			logger.Get().Error("failed to create video", zap.Error(err))
 			return nil, err
 		}
 		videos = append(videos, video)
@@ -108,11 +110,13 @@ func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, e
 	// 1. fetch the batch + videos
 	batch, err := m.queries.GetBatch(ctx, batchID)
 	if err != nil {
+		logger.Get().Error("failed to get batch", zap.Int32("batch_id", batchID), zap.Error(err))
 		return nil, err
 	}
 
 	videos, err := m.queries.GetVideosByBatch(ctx, batchID)
 	if err != nil {
+		logger.Get().Error("failed to get videos for batch", zap.Int32("batch_id", batchID), zap.Error(err))
 		return nil, err
 	}
 

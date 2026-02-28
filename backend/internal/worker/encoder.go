@@ -4,13 +4,17 @@ import (
 	"os"
 	"os/exec"
 	"shrinkly/backend/config"
+	"shrinkly/backend/internal/logger"
 	"strconv"
+
+	"go.uber.org/zap"
 )
 
 func Encode(inputPath, outputPath string, cfg *config.Config) (originalSize, optimizedSize int64, err error) {
 	// 1. get original file size
 	info, err := os.Stat(inputPath)
 	if err != nil {
+		logger.Get().Error("failed to stat input file", zap.String("path", inputPath), zap.Error(err))
 		return 0, 0, err
 	}
 	originalSize = info.Size()
@@ -24,11 +28,13 @@ func Encode(inputPath, outputPath string, cfg *config.Config) (originalSize, opt
 		outputPath,
 	)
 	if err := cmd.Run(); err != nil {
+		logger.Get().Error("ffmpeg command failed", zap.Error(err))
 		return originalSize, 0, err
 	}
 	// 3. get optimized file size
 	info, err = os.Stat(outputPath)
 	if err != nil {
+		logger.Get().Error("failed to stat output file", zap.String("path", outputPath), zap.Error(err))
 		return originalSize, 0, err
 	}
 	optimizedSize = info.Size()
