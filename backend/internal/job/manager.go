@@ -26,14 +26,14 @@ func NewManager(queries *db.Queries, pool *worker.Pool, cfg *config.Config) *Man
 	}
 }
 
-func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (int32, error) {
+func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, error) {
 	//  1. create batch record
 	batch, err := m.queries.CreateBatch(ctx, db.CreateBatchParams{
 		TotalFiles: int32(len(filePath)),
 		Status:     "pending",
 	})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	// 2. create a video record for each file
@@ -46,7 +46,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (int32, er
 			Status:           "pending",
 		})
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		videos = append(videos, video)
 	}
@@ -83,7 +83,25 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (int32, er
 		}
 	}
 
-	return batch.ID, nil
+	var totalOriginalSize, totalOptimizedSize int64
+	var processedCount int32
+	for _, r := range results {
+		if r.Success {
+			totalOriginalSize += r.OriginalSize
+			totalOptimizedSize += r.OptimizedSize
+			processedCount++
+		}
+	}
+
+	// 6. update batch record
+	m.queries.UpdateBatchProgress(ctx, db.UpdateBatchProgressParams{
+		ID:                 batch.ID,
+		ProcessedFiles:     processedCount,
+		TotalOriginalSize:  totalOriginalSize,
+		TotalOptimizedSize: totalOptimizedSize,
+	})
+
+	return m.GetBatchReport(ctx, batch.ID)
 }
 
 func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, error) {
@@ -97,11 +115,20 @@ func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, e
 	if err != nil {
 		return nil, err
 	}
+
 	var failedCount int32
+	var videosResults []VideoResult
 	for _, v := range videos {
 		if v.Status == "failed" {
 			failedCount++
 		}
+		videosResults = append(videosResults, VideoResult{
+			VideoID:       v.ID,
+			Filename:      v.OriginalFilename,
+			OriginalSize:  v.OriginalSize,
+			OptimizedSize: v.OptimizedSize.Int64,
+			Status:        v.Status,
+		})
 	}
 
 	// 2. count fail,compute ratio and duraiton
@@ -122,5 +149,6 @@ func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, e
 		TotalOptimizedSize: batch.TotalOptimizedSize,
 		CompressionRatio:   ratio,
 		Duration:           duration,
+		Videos:             videosResults,
 	}, nil
 }
