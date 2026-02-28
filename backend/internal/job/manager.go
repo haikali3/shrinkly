@@ -143,7 +143,7 @@ func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, e
 		}
 		videosResults = append(videosResults, VideoResult{
 			VideoID:       v.ID,
-			Filename:      v.OriginalFilename,
+			Filename:      filepath.Base(v.OriginalFilename),
 			OriginalSize:  v.OriginalSize,
 			OptimizedSize: v.OptimizedSize.Int64,
 			Status:        v.Status,
