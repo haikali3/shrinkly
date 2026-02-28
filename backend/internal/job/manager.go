@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"path/filepath"
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/db"
 	"shrinkly/backend/internal/logger"
@@ -56,7 +57,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (int32, er
 		tasks[i] = worker.Task{
 			VideoID:    video.ID,
 			InputPath:  video.OriginalFilename,
-			OutputPath: m.Cfg.OutputDir + "/" + video.OriginalFilename,
+			OutputPath: m.Cfg.OutputDir + "/" + filepath.Base(video.OriginalFilename),
 		}
 	}
 
