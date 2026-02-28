@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/db"
@@ -40,10 +41,15 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, 
 	// 2. create a video record for each file
 	var videos []db.Video
 	for _, path := range filePath {
+		info, err := os.Stat(path)
+		if err != nil {
+			logger.Get().Error("failed to stat file", zap.String("path", path), zap.Error(err))
+			continue
+		}
 		video, err := m.queries.CreateVideo(ctx, db.CreateVideoParams{
 			BatchID:          batch.ID,
 			OriginalFilename: path,
-			OriginalSize:     batch.TotalOriginalSize,
+			OriginalSize:     info.Size(),
 			Status:           "pending",
 		})
 		if err != nil {
