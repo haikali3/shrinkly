@@ -3,13 +3,13 @@ package job
 import "time"
 
 type Report struct {
-	BatchID            int32
-	Status             string
-	TotalFiles         int32
-	ProcessedFiles     int32
-	FailedCount        int32
-	TotalOriginalSize  int64
-	TotalOptimizedSize int64
-	CompressionRatio   float64
-	Duration           time.Duration
+	BatchID            int32         `json:"batch_id"`
+	Status             string        `json:"status"`
+	TotalFiles         int32         `json:"total_files"`
+	ProcessedFiles     int32         `json:"processed_files"`
+	FailedCount        int32         `json:"failed_count"`
+	TotalOriginalSize  int64         `json:"total_original_size"`
+	TotalOptimizedSize int64         `json:"total_optimized_size"`
+	CompressionRatio   float64       `json:"compression_ratio"`
+	Duration           time.Duration `json:"duration"`
 }

@@ -47,6 +47,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	files := r.MultipartForm.File["files"]
+	logger.Get().Info("received files", zap.Int("count", len(files)))
 	// 2. save files to InputDir, call m.CreateBatch and return 201 with batch ID
 	var filePaths []string
 	for _, fileHeader := range files {
