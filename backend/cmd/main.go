@@ -46,7 +46,7 @@ func main() {
 
 	// wire router + start http server
 	handler := api.NewHandler(manager, cfg)
-	router := api.NewRouter(handler)
+	router := api.NewRouter(handler, cfg.AllowedOrigins)
 	logger.Get().Info("server started", zap.String("port", cfg.Port))
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
 		logger.Get().Error("failed to start server", zap.Error(err))
