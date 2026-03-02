@@ -10,7 +10,7 @@ type Config struct {
 	Port         string `env:"SHRINKLY_PORT, default=8080"`
 	DatabaseURL  string `env:"SHRINKLY_DATABASE_URL, required"`
 	MaxWorkers   int    `env:"SHRINKLY_MAX_WORKERS, default=4"`
-	CRF          int    `env:"SHRINKLY_CRF, default=26"`
+	CRF          int    `env:"SHRINKLY_CRF, default=28"`
 	Codec        string `env:"SHRINKLY_CODEC, default=libx265"`
 	Preset       string `env:"SHRINKLY_PRESET, default=medium"`
 	AudioBitrate string `env:"SHRINKLY_AUDIO_BITRATE, default=128k"`
