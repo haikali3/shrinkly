@@ -14,22 +14,37 @@ usage() {
 }
 
 run_backend() {
+  echo "[backend] Tidying Go modules..."
+  cd "$ROOT/backend" && go mod tidy
   echo "[backend] Starting Go server..."
-  cd "$ROOT/backend" && go run ./cmd/main.go
+  go run ./cmd/main.go
 }
 
 run_frontend() {
+  echo "[frontend] Installing dependencies..."
+  cd "$ROOT/frontend" && pnpm install
   echo "[frontend] Starting Next.js dev server..."
-  cd "$ROOT/frontend" && pnpm dev
+  pnpm dev
 }
 
 run_both() {
-  echo "[dev] Starting backend and frontend..."
+  echo "[dev] Setting up and starting backend and frontend..."
 
   trap 'kill 0' INT TERM
 
-  (cd "$ROOT/backend" && go run ./cmd/main.go) &
-  (cd "$ROOT/frontend" && pnpm dev) &
+  (
+    echo "[backend] Tidying Go modules..."
+    cd "$ROOT/backend" && go mod tidy
+    echo "[backend] Starting Go server..."
+    go run ./cmd/main.go
+  ) &
+
+  (
+    echo "[frontend] Installing dependencies..."
+    cd "$ROOT/frontend" && pnpm install
+    echo "[frontend] Starting Next.js dev server..."
+    pnpm dev
+  ) &
 
   wait
 }
