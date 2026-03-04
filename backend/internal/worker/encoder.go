@@ -27,7 +27,8 @@ func Encode(inputPath, outputPath string, setting *CompressionSettings) (origina
 
 	originalSize = info.Size()
 	// 2. run ffmpeg command from config
-	args := []string{"-y", "-i", inputPath,
+	args := []string{"-i", inputPath,
+		// args := []string{"-y", "-i", inputPath,
 		"-c:v", setting.Codec, // video codec
 		"-preset", setting.Preset, // compression speed/efficiency tradeoff
 		"-crf", strconv.Itoa(setting.CRF), // quality level
