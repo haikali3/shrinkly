@@ -29,9 +29,10 @@ func Encode(inputPath, outputPath string, setting *CompressionSettings) (origina
 		logger.Get().Error("failed to probe codec", zap.String("path", inputPath), zap.Error(err))
 		return 0, 0, err
 	}
-	if codec == "hevc" && setting.Codec == "h265" {
+	if codec == "hevc" && setting.Codec == "libx265" {
 		// already h265, use higher crf to force smaller size
 		setting.CRF = 32
+		logger.Get().Info("already hevc, bumping crf", zap.Int("crf", setting.CRF))
 	}
 
 	originalSize = info.Size()
