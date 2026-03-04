@@ -10,9 +10,11 @@ import (
 )
 
 type CompressionSettings struct {
-	Codec  string `json:"codec"`
-	CRF    int    `json:"crf"`
-	Preset string `json:"preset"`
+	Codec      string `json:"codec"`
+	CRF        int    `json:"crf"`
+	Preset     string `json:"preset"`
+	Resolution string `json:"resolution"`
+	Bitrate    string `json:"bitrate"`
 }
 
 func Encode(inputPath, outputPath string, setting *CompressionSettings) (originalSize, optimizedSize int64, err error) {
