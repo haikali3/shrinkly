@@ -70,7 +70,7 @@ func (s *CompressionSettings) SetDefaults() {
 
 func GetCompressionOptions() CompressionOptions {
 	opts := CompressionOptions{
-		Codecs: []string{"libx264", "libx265", "vp9"},
+		Codecs: []string{"libx264", "libx265", "libvpx-vp9"},
 		Presets: []string{
 			"ultrafast",
 			"superfast",
@@ -81,7 +81,7 @@ func GetCompressionOptions() CompressionOptions {
 			"slow",
 			"slower",
 			"veryslow",
-			"placeboo",
+			"placebo",
 		},
 	}
 	opts.CRFRange.Min = 0
