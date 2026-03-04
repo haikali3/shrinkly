@@ -56,8 +56,6 @@ type CompressionSettings = {
 	crf: string;
 	preset: string;
 	resolution: string;
-	audioBitrate: string;
-	muted: boolean;
 };
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
@@ -67,8 +65,6 @@ const defaultSettings: CompressionSettings = {
 	crf: "28",
 	preset: "medium",
 	resolution: "original",
-	audioBitrate: "128",
-	muted: false,
 };
 
 function formatBytes(bytes: number) {
@@ -145,10 +141,8 @@ export default function Home() {
 		formData.append("codec", settings.codec);
 		formData.append("crf", settings.crf);
 		formData.append("preset", settings.preset);
-		formData.append("resolution", settings.resolution);
-		formData.append("muted", String(settings.muted));
-		if (!settings.muted) {
-			formData.append("audio_bitrate", settings.audioBitrate);
+		if (settings.resolution !== "original") {
+			formData.append("resolution", settings.resolution);
 		}
 
 		try {
@@ -266,31 +260,6 @@ export default function Home() {
 									</SelectContent>
 								</Select>
 							</div>
-
-							<div className="space-y-2">
-								<Label htmlFor="audio-bitrate">Audio Bitrate (kbps)</Label>
-								<Input
-									id="audio-bitrate"
-									type="number"
-									min="32"
-									step="32"
-									value={settings.audioBitrate}
-									disabled={isSubmitting || settings.muted}
-									onChange={(event) => updateSetting("audioBitrate", event.target.value)}
-								/>
-							</div>
-
-							<div className="space-y-2">
-								<Label htmlFor="muted" className="justify-between rounded-md border px-3 py-3">
-									<span>Mute Audio</span>
-									<Switch
-										id="muted"
-										checked={settings.muted}
-										disabled={isSubmitting}
-										onCheckedChange={(checked) => updateSetting("muted", checked)}
-									/>
-								</Label>
-							</div>
 						</div>
 
 						<div className="flex flex-col gap-3 sm:flex-row">
@@ -313,15 +282,6 @@ export default function Home() {
 							</Button>
 						</div>
 					</form>
-
-					<Alert>
-						<AlertTitle>Current backend behavior</AlertTitle>
-						<AlertDescription>
-							These settings are sent in the multipart request, but the Go API currently only processes the{" "}
-							<span className="font-mono">files</span> field. Backend changes are still needed for codec, CRF,
-							preset, resolution, and audio options to take effect.
-						</AlertDescription>
-					</Alert>
 
 					{error ? (
 						<Alert variant="destructive">
