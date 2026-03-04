@@ -16,7 +16,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import {
 	Table,
 	TableBody,
@@ -247,13 +246,14 @@ export default function Home() {
 								<Select
 									value={settings.resolution}
 									onValueChange={(value) => updateSetting("resolution", value)}
-									disabled={isSubmitting}
+									// disabled={isSubmitting}
+									disabled
 								>
 									<SelectTrigger className="w-full">
 										<SelectValue placeholder="Select resolution" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="original">Keep original</SelectItem>
+										<SelectItem value="original">Original</SelectItem>
 										<SelectItem value="1080">1080p</SelectItem>
 										<SelectItem value="720">720p</SelectItem>
 										<SelectItem value="480">480p</SelectItem>
