@@ -1,6 +1,9 @@
 package job
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type Report struct {
 	BatchID            int32         `json:"batch_id"`
@@ -27,4 +30,29 @@ type CompressionSettings struct {
 	Codec  string `json:"codec"`
 	CRF    int    `json:"crf"`
 	Preset string `json:"preset"`
+}
+
+func (s CompressionSettings) Valid() error {
+	if s.Codec == "" {
+		return errors.New("codec is required")
+	}
+	if s.CRF == 0 {
+		return errors.New("crf is required")
+	}
+	if s.Preset == "" {
+		return errors.New("preset is required")
+	}
+	return nil
+}
+
+func (s *CompressionSettings) SetDefaults() {
+	if s.Codec == "" {
+		s.Codec = "libx265"
+	}
+	if s.CRF == 0 {
+		s.CRF = 28
+	}
+	if s.Preset == "" {
+		s.Preset = "medium"
+	}
 }

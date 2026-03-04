@@ -45,9 +45,23 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 2. validate compressing settings
+	crf, _ := strconv.Atoi(r.FormValue("crf"))
+	settings := job.CompressionSettings{
+		Codec:  r.FormValue("codec"),
+		CRF:    crf,
+		Preset: r.FormValue("preset"),
+	}
+
+	if err := settings.Valid(); err != nil {
+		logger.Get().Error("invalid compression settings", zap.Error(err))
+		writeJSON(w, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
+
 	files := r.MultipartForm.File["files"]
 	logger.Get().Info("received files", zap.Int("count", len(files)))
-	// 2. save files to InputDir, call m.CreateBatch and return 201 with batch ID
+	// 2. save files to InputDir
 	var filePaths []string
 	for _, fileHeader := range files {
 		// open the uploaded files
@@ -70,13 +84,8 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 		filePaths = append(filePaths, dstPath)
 	}
 
-	// call CreateBatch with saved paths
-	crf, _ := strconv.Atoi(r.FormValue("crf"))
-	report, err := h.Creator.CreateBatch(r.Context(), filePaths, job.CompressionSettings{
-		Codec:  r.FormValue("codec"),
-		CRF:    crf,
-		Preset: r.FormValue("preset"),
-	})
+	// call CreateBatch to create a batch and return the report
+	report, err := h.Creator.CreateBatch(r.Context(), filePaths, settings)
 
 	if err != nil {
 		logger.Get().Error("failed to create batch", zap.Error(err))
