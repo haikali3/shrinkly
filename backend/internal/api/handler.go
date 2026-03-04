@@ -121,7 +121,7 @@ func (h *Handler) HandleBatchReport(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, "batch report retrieved", report)
 }
 
-func (h *Handler) HandleGetCompressionOptions(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleCompressionOptions(w http.ResponseWriter, r *http.Request) {
 	options := job.GetCompressionOptions()
 	writeJSON(w, http.StatusOK, "compression options retrieved", options)
 }
