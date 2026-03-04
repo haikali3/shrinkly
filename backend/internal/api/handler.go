@@ -97,7 +97,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, "batch created", report)
 }
 
-func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleBatchReport(w http.ResponseWriter, r *http.Request) {
 	// 1. parse batchID from url
 	idStr := chi.URLParam(r, "id")
 	batchID, err := strconv.Atoi(idStr)
@@ -117,4 +117,8 @@ func (h *Handler) HandleGetBatchReport(w http.ResponseWriter, r *http.Request) {
 
 	// 3. return report as json
 	writeJSON(w, http.StatusOK, "batch report retrieved", report)
+}
+
+func HandleCompressionOptions() {
+
 }

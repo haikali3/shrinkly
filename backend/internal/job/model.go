@@ -34,6 +34,15 @@ type CompressionSettings struct {
 	Bitrate    string `json:"bitrate"`
 }
 
+type CompressionOptions struct {
+	Codecs   []string `json:"codecs"`
+	Presets  []string `json:"presets"`
+	CRFRange struct {
+		Min int `json:"min"`
+		Max int `json:"max"`
+	} `json:"crf_range"`
+}
+
 func (s CompressionSettings) Valid() error {
 	if s.Codec == "" {
 		return errors.New("codec is required")
@@ -57,4 +66,25 @@ func (s *CompressionSettings) SetDefaults() {
 	if s.Preset == "" {
 		s.Preset = "medium"
 	}
+}
+
+func GetCompressionOptions() CompressionOptions {
+	opts := CompressionOptions{
+		Codecs: []string{"libx264", "libx265", "vp9"},
+		Presets: []string{
+			"ultrafast",
+			"superfast",
+			"veryfast",
+			"faster",
+			"fast",
+			"medium",
+			"slow",
+			"slower",
+			"veryslow",
+			"placeboo",
+		},
+	}
+	opts.CRFRange.Min = 0
+	opts.CRFRange.Max = 51
+	return opts
 }

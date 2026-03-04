@@ -13,7 +13,7 @@ func NewRouter(h *Handler, allowedOrigins string) *chi.Mux {
 
 	r.Get("/", h.HandleHealthCheck)
 	r.Post("/batch", h.HandleCreateBatch)
-	r.Get("/batch/{id}", h.HandleGetBatchReport)
+	r.Get("/batch/{id}", h.HandleBatchReport)
 	return r
 }
 
