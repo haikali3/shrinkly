@@ -5,11 +5,11 @@ set -e
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 usage() {
-  echo "Usage: bin/dev [-be | -fe | --backend | --frontend]"
+  echo "Usage: bin/dev [-b | -f | -a]"
   echo ""
-  echo "  -be, --backend    Run backend (Go)"
-  echo "  -fe, --frontend   Run frontend (Next.js)"
-  echo "  (no flag)         Run both backend and frontend"
+  echo "  -b    Run backend (Go)"
+  echo "  -f    Run frontend (Next.js)"
+  echo "  -a    Run both backend and frontend"
   exit 1
 }
 
@@ -50,13 +50,13 @@ run_both() {
 }
 
 case "${1:-}" in
-  -be|--backend)
+  -b)
     run_backend
     ;;
-  -fe|--frontend)
+  -f)
     run_frontend
     ;;
-  -a|--all)
+  -a)
     run_both
     ;;
   "")
@@ -67,14 +67,14 @@ case "${1:-}" in
     echo "    bin/dev <flag>"
     echo ""
     echo "  Flags:"
-    echo "    -be, --backend     Run backend only  (Go server)"
-    echo "    -fe, --frontend    Run frontend only (Next.js)"
-    echo "    -a,  --all         Run both backend and frontend"
+    echo "    -b    Run backend only  (Go server)"
+    echo "    -f    Run frontend only (Next.js)"
+    echo "    -a    Run both backend and frontend"
     echo ""
     echo "  Examples:"
-    echo "    bin/dev -be"
-    echo "    bin/dev -fe"
-    echo "    bin/dev --all"
+    echo "    bin/dev -b"
+    echo "    bin/dev -f"
+    echo "    bin/dev -a"
     echo ""
     ;;
   *)
