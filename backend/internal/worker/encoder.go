@@ -37,7 +37,7 @@ func Encode(inputPath, outputPath string, setting *CompressionSettings) (origina
 
 	originalSize = info.Size()
 	// 2. run ffmpeg command from config
-	cmd := exec.Command("ffmpeg", "-i", inputPath,
+	cmd := exec.Command("ffmpeg", "-y", "-i", inputPath,
 		"-c:v", setting.Codec,
 		"-preset", setting.Preset,
 		"-crf", strconv.Itoa(setting.CRF),
