@@ -41,7 +41,7 @@ func main() {
 	queries := db.New(conn)
 
 	// init worker pool + job manager
-	pool := worker.NewPool(cfg.MaxWorkers, cfg)
+	pool := worker.NewPool(cfg.MaxWorkers)
 	manager := job.NewManager(queries, pool, cfg)
 
 	// wire router + start http server
