@@ -20,7 +20,7 @@ type Handler struct {
 }
 
 type BatchCreator interface {
-	CreateBatch(ctx context.Context, filePaths []string) (*job.Report, error)
+	CreateBatch(ctx context.Context, filePaths []string, setting job.CompressionSettings) (*job.Report, error)
 }
 
 type BatchReporter interface {
@@ -71,7 +71,13 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call CreateBatch with saved paths
-	report, err := h.Creator.CreateBatch(r.Context(), filePaths)
+	crf, _ := strconv.Atoi(r.FormValue("crf"))
+	report, err := h.Creator.CreateBatch(r.Context(), filePaths, job.CompressionSettings{
+		Codec:  r.FormValue("codec"),
+		CRF:    crf,
+		Preset: r.FormValue("preset"),
+	})
+
 	if err != nil {
 		logger.Get().Error("failed to create batch", zap.Error(err))
 		writeJSON(w, http.StatusInternalServerError, "failed to create batch", nil)
