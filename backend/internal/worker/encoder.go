@@ -31,8 +31,9 @@ func Encode(inputPath, outputPath string, setting *CompressionSettings) (origina
 		"-c:a", "aac",
 		outputPath,
 	)
-	if err := cmd.Run(); err != nil {
-		logger.Get().Error("ffmpeg command failed", zap.Error(err))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Get().Error("ffmpeg command failed", zap.Error(err), zap.String("output", string(out)))
 		return originalSize, 0, err
 	}
 	// 3. get optimized file size
