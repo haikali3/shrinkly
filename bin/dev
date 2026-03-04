@@ -4,51 +4,166 @@ set -e
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-usage() {
-  echo "Usage: bin/dev [-b | -f | -a]"
-  echo ""
-  echo "  -b    Run backend (Go)"
-  echo "  -f    Run frontend (Next.js)"
-  echo "  -a    Run both backend and frontend"
-  exit 1
+# ── Colors ────────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+BE_PREFIX="${BLUE}[backend]${RESET}"
+FE_PREFIX="${GREEN}[frontend]${RESET}"
+
+log_be()   { echo -e "${BE_PREFIX} $*"; }
+log_fe()   { echo -e "${FE_PREFIX} $*"; }
+log_warn() { echo -e "${YELLOW}[warn]${RESET} $*"; }
+log_err()  { echo -e "${RED}[error]${RESET} $*"; }
+
+# ── Tool checks ───────────────────────────────────────────────────────────────
+check_tools() {
+  local missing=0
+
+  if ! command -v go &>/dev/null; then
+    log_err "Go is not installed. Install it from https://go.dev/dl/"
+    missing=1
+  fi
+
+  if ! command -v pnpm &>/dev/null; then
+    log_err "pnpm is not installed. Run: npm install -g pnpm"
+    missing=1
+  fi
+
+  if [[ $missing -eq 1 ]]; then
+    exit 1
+  fi
 }
 
+check_be_tools() {
+  if ! command -v go &>/dev/null; then
+    log_err "Go is not installed. Install it from https://go.dev/dl/"
+    exit 1
+  fi
+}
+
+check_fe_tools() {
+  if ! command -v pnpm &>/dev/null; then
+    log_err "pnpm is not installed. Run: npm install -g pnpm"
+    exit 1
+  fi
+}
+
+# ── .env check ────────────────────────────────────────────────────────────────
+check_env() {
+  if [[ ! -f "$ROOT/backend/.env" ]]; then
+    log_warn "backend/.env not found. The server may fail to start."
+    log_warn "Create one based on backend/.env.example if available."
+  fi
+}
+
+# ── Port check ────────────────────────────────────────────────────────────────
+check_port() {
+  local port=$1
+  local name=$2
+  if lsof -iTCP:"$port" -sTCP:LISTEN &>/dev/null; then
+    log_warn "Port $port is already in use — $name may fail to start."
+  fi
+}
+
+# ── Smart install: skip if lockfile unchanged ─────────────────────────────────
+BE_TIDY_STAMP="$ROOT/.cache/go_mod_tidy.stamp"
+FE_INSTALL_STAMP="$ROOT/.cache/pnpm_install.stamp"
+
+should_tidy() {
+  local sum="$ROOT/backend/go.sum"
+  local mod="$ROOT/backend/go.mod"
+  mkdir -p "$ROOT/.cache"
+  if [[ ! -f "$BE_TIDY_STAMP" ]]; then return 0; fi
+  if [[ "$sum" -nt "$BE_TIDY_STAMP" || "$mod" -nt "$BE_TIDY_STAMP" ]]; then return 0; fi
+  return 1
+}
+
+should_install() {
+  local lock="$ROOT/frontend/pnpm-lock.yaml"
+  mkdir -p "$ROOT/.cache"
+  if [[ ! -f "$FE_INSTALL_STAMP" ]]; then return 0; fi
+  if [[ ! -d "$ROOT/frontend/node_modules" ]]; then return 0; fi
+  if [[ "$lock" -nt "$FE_INSTALL_STAMP" ]]; then return 0; fi
+  return 1
+}
+
+# ── Runners ───────────────────────────────────────────────────────────────────
 run_backend() {
-  echo "[backend] Tidying Go modules..."
-  cd "$ROOT/backend" && go mod tidy
-  echo "[backend] Starting Go server..."
-  go run ./cmd/main.go
+  check_be_tools
+  check_env
+  check_port 8080 "backend"
+
+  if should_tidy; then
+    log_be "Tidying Go modules..."
+    cd "$ROOT/backend" && go mod tidy
+    touch "$BE_TIDY_STAMP"
+  else
+    log_be "Go modules up to date, skipping tidy."
+  fi
+
+  log_be "Starting Go server on :8080"
+  cd "$ROOT/backend" && go run ./cmd/main.go
 }
 
 run_frontend() {
-  echo "[frontend] Installing dependencies..."
-  cd "$ROOT/frontend" && pnpm install
-  echo "[frontend] Starting Next.js dev server..."
-  pnpm dev
+  check_fe_tools
+  check_port 3000 "frontend"
+
+  if should_install; then
+    log_fe "Installing dependencies..."
+    cd "$ROOT/frontend" && pnpm install
+    touch "$FE_INSTALL_STAMP"
+  else
+    log_fe "Dependencies up to date, skipping install."
+  fi
+
+  log_fe "Starting Next.js dev server on :3000"
+  cd "$ROOT/frontend" && pnpm dev
 }
 
 run_both() {
-  echo "[dev] Setting up and starting backend and frontend..."
+  check_tools
+  check_env
+  check_port 8080 "backend"
+  check_port 3000 "frontend"
 
-  trap 'kill 0' INT TERM
+  echo -e "\n${BOLD}  shrinkly — starting all services${RESET}\n"
+
+  trap 'echo -e "\n${YELLOW}[dev]${RESET} Shutting down..."; kill 0' INT TERM
 
   (
-    echo "[backend] Tidying Go modules..."
-    cd "$ROOT/backend" && go mod tidy
-    echo "[backend] Starting Go server..."
-    go run ./cmd/main.go
+    if should_tidy; then
+      log_be "Tidying Go modules..."
+      cd "$ROOT/backend" && go mod tidy
+      touch "$BE_TIDY_STAMP"
+    else
+      log_be "Go modules up to date, skipping tidy."
+    fi
+    log_be "Starting Go server on :8080"
+    cd "$ROOT/backend" && go run ./cmd/main.go 2>&1 | sed "s/^/$(echo -e "${BE_PREFIX}") /"
   ) &
 
   (
-    echo "[frontend] Installing dependencies..."
-    cd "$ROOT/frontend" && pnpm install
-    echo "[frontend] Starting Next.js dev server..."
-    pnpm dev
+    if should_install; then
+      log_fe "Installing dependencies..."
+      cd "$ROOT/frontend" && pnpm install
+      touch "$FE_INSTALL_STAMP"
+    else
+      log_fe "Dependencies up to date, skipping install."
+    fi
+    log_fe "Starting Next.js dev server on :3000"
+    cd "$ROOT/frontend" && pnpm dev 2>&1 | sed "s/^/$(echo -e "${FE_PREFIX}") /"
   ) &
 
   wait
 }
 
+# ── Entry ─────────────────────────────────────────────────────────────────────
 case "${1:-}" in
   -b)
     run_backend
@@ -61,23 +176,27 @@ case "${1:-}" in
     ;;
   "")
     echo ""
-    echo "  shrinkly dev runner"
+    echo -e "  ${BOLD}shrinkly dev runner${RESET}"
     echo ""
-    echo "  Usage:"
+    echo -e "  ${BOLD}Usage:${RESET}"
     echo "    bin/dev <flag>"
     echo ""
-    echo "  Flags:"
-    echo "    -b    Run backend only  (Go server)"
-    echo "    -f    Run frontend only (Next.js)"
+    echo -e "  ${BOLD}Flags:${RESET}"
+    echo -e "    ${BLUE}-b${RESET}    Run backend only  (Go, :8080)"
+    echo -e "    ${GREEN}-f${RESET}    Run frontend only (Next.js, :3000)"
     echo "    -a    Run both backend and frontend"
     echo ""
-    echo "  Examples:"
+    echo -e "  ${BOLD}Examples:${RESET}"
     echo "    bin/dev -b"
     echo "    bin/dev -f"
     echo "    bin/dev -a"
     echo ""
     ;;
   *)
-    usage
+    log_err "Unknown flag: $1"
+    echo ""
+    echo "  Run ${BOLD}bin/dev${RESET} with no args to see usage."
+    echo ""
+    exit 1
     ;;
 esac

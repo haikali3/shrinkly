@@ -4,3 +4,5 @@
 
 backend/input
 backend/output
+
+.cache/
