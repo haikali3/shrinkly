@@ -1,19 +1,18 @@
 package worker
 
 import (
-	"shrinkly/backend/config"
 	"sync"
 )
 
 type Pool struct {
 	maxWorkers int
-	cfg        *config.Config
 }
 
 type Task struct {
 	VideoID    int32
 	InputPath  string
 	OutputPath string
+	Settings   CompressionSettings
 }
 
 type TaskResult struct {
@@ -24,10 +23,9 @@ type TaskResult struct {
 	OptimizedSize int64
 }
 
-func NewPool(maxWorkers int, cfg *config.Config) *Pool {
+func NewPool(maxWorkers int) *Pool {
 	return &Pool{
 		maxWorkers: maxWorkers,
-		cfg:        cfg,
 	}
 }
 
@@ -56,7 +54,7 @@ func (p *Pool) Process(tasks []Task) []TaskResult {
 			defer wg.Done()
 			defer func() { <-slots }()
 
-			origSize, optSize, err := Encode(t.InputPath, t.OutputPath, p.cfg)
+			origSize, optSize, err := Encode(t.InputPath, t.OutputPath, &t.Settings)
 			if err != nil {
 				// 4. capture on TaskResult per task
 				results[idx] = TaskResult{

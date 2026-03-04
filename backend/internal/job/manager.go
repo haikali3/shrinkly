@@ -27,7 +27,7 @@ func NewManager(queries *db.Queries, pool *worker.Pool, cfg *config.Config) *Man
 	}
 }
 
-func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, error) {
+func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting *CompressionSettings) (*Report, error) {
 	//  1. create batch record
 	batch, err := m.queries.CreateBatch(ctx, db.CreateBatchParams{
 		TotalFiles: int32(len(filePath)),
@@ -66,6 +66,11 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string) (*Report, 
 			VideoID:    video.ID,
 			InputPath:  video.OriginalFilename,
 			OutputPath: m.Cfg.OutputDir + "/" + filepath.Base(video.OriginalFilename),
+			Settings: worker.CompressionSettings{
+				Codec:  setting.Codec,
+				CRF:    setting.CRF,
+				Preset: setting.Preset,
+			},
 		}
 	}
 

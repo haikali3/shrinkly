@@ -22,3 +22,9 @@ type VideoResult struct {
 	OptimizedSize int64  `json:"optimized_size"`
 	Status        string `json:"status"`
 }
+
+type CompressionSettings struct {
+	Codec  string `json:"codec"`
+	CRF    int    `json:"crf"`
+	Preset string `json:"preset"`
+}

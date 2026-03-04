@@ -3,14 +3,19 @@ package worker
 import (
 	"os"
 	"os/exec"
-	"shrinkly/backend/config"
 	"shrinkly/backend/internal/logger"
 	"strconv"
 
 	"go.uber.org/zap"
 )
 
-func Encode(inputPath, outputPath string, cfg *config.Config) (originalSize, optimizedSize int64, err error) {
+type CompressionSettings struct {
+	Codec  string `json:"codec"`
+	CRF    int    `json:"crf"`
+	Preset string `json:"preset"`
+}
+
+func Encode(inputPath, outputPath string, setting *CompressionSettings) (originalSize, optimizedSize int64, err error) {
 	// 1. get original file size
 	info, err := os.Stat(inputPath)
 	if err != nil {
@@ -20,11 +25,10 @@ func Encode(inputPath, outputPath string, cfg *config.Config) (originalSize, opt
 	originalSize = info.Size()
 	// 2. run ffmpeg command from config
 	cmd := exec.Command("ffmpeg", "-i", inputPath,
-		"-c:v", cfg.Codec,
-		"-preset", cfg.Preset,
-		"-crf", strconv.Itoa(cfg.CRF),
+		"-c:v", setting.Codec,
+		"-preset", setting.Preset,
+		"-crf", strconv.Itoa(setting.CRF),
 		"-c:a", "aac",
-		"-b:a", cfg.AudioBitrate,
 		outputPath,
 	)
 	if err := cmd.Run(); err != nil {
