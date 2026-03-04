@@ -48,9 +48,11 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// 2. validate compressing settings
 	crf, _ := strconv.Atoi(r.FormValue("crf"))
 	settings := job.CompressionSettings{
-		Codec:  r.FormValue("codec"),
-		CRF:    crf,
-		Preset: r.FormValue("preset"),
+		Codec:      r.FormValue("codec"),
+		CRF:        crf,
+		Preset:     r.FormValue("preset"),
+		Resolution: r.FormValue("resolution"),
+		Bitrate:    r.FormValue("bitrate"),
 	}
 
 	settings.SetDefaults()
@@ -119,6 +121,7 @@ func (h *Handler) HandleBatchReport(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, "batch report retrieved", report)
 }
 
-func HandleCompressionOptions() {
-
+func (h *Handler) HandleGetCompressionOptions(w http.ResponseWriter, r *http.Request) {
+	options := job.GetCompressionOptions()
+	writeJSON(w, http.StatusOK, "compression options retrieved", options)
 }
