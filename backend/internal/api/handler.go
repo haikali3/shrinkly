@@ -53,6 +53,8 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 		Preset: r.FormValue("preset"),
 	}
 
+	settings.SetDefaults()
+
 	if err := settings.Valid(); err != nil {
 		logger.Get().Error("invalid compression settings", zap.Error(err))
 		writeJSON(w, http.StatusBadRequest, err.Error(), nil)
@@ -61,10 +63,9 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 
 	files := r.MultipartForm.File["files"]
 	logger.Get().Info("received files", zap.Int("count", len(files)))
-	// 2. save files to InputDir
+	// 3. save files to InputDir
 	var filePaths []string
 	for _, fileHeader := range files {
-		// open the uploaded files
 		src, err := fileHeader.Open()
 		if err != nil {
 			logger.Get().Error("failed to open uploaded file", zap.Error(err))
