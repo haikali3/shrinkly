@@ -50,7 +50,7 @@ func (s *CompressionSettings) SetDefaults() {
 		s.Codec = "libx265"
 	}
 	if s.CRF == 0 {
-		s.CRF = 28
+		s.CRF = 32
 	}
 	if s.Preset == "" {
 		s.Preset = "medium"
