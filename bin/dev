@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+set -e
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+  echo "Usage: bin/dev [-be | -fe | --backend | --frontend]"
+  echo ""
+  echo "  -be, --backend    Run backend (Go)"
+  echo "  -fe, --frontend   Run frontend (Next.js)"
+  echo "  (no flag)         Run both backend and frontend"
+  exit 1
+}
+
+run_backend() {
+  echo "[backend] Starting Go server..."
+  cd "$ROOT/backend" && go run ./cmd/main.go
+}
+
+run_frontend() {
+  echo "[frontend] Starting Next.js dev server..."
+  cd "$ROOT/frontend" && pnpm dev
+}
+
+run_both() {
+  echo "[dev] Starting backend and frontend..."
+
+  trap 'kill 0' INT TERM
+
+  (cd "$ROOT/backend" && go run ./cmd/main.go) &
+  (cd "$ROOT/frontend" && pnpm dev) &
+
+  wait
+}
+
+case "${1:-}" in
+  -be|--backend)
+    run_backend
+    ;;
+  -fe|--frontend)
+    run_frontend
+    ;;
+  -a|--all)
+    run_both
+    ;;
+  "")
+    echo ""
+    echo "  shrinkly dev runner"
+    echo ""
+    echo "  Usage:"
+    echo "    bin/dev <flag>"
+    echo ""
+    echo "  Flags:"
+    echo "    -be, --backend     Run backend only  (Go server)"
+    echo "    -fe, --frontend    Run frontend only (Next.js)"
+    echo "    -a,  --all         Run both backend and frontend"
+    echo ""
+    echo "  Examples:"
+    echo "    bin/dev -be"
+    echo "    bin/dev -fe"
+    echo "    bin/dev --all"
+    echo ""
+    ;;
+  *)
+    usage
+    ;;
+esac
