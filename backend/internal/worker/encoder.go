@@ -27,13 +27,22 @@ func Encode(inputPath, outputPath string, setting *CompressionSettings) (origina
 
 	originalSize = info.Size()
 	// 2. run ffmpeg command from config
-	cmd := exec.Command("ffmpeg", "-y", "-i", inputPath, // "-y" to overwrite output file if exists
-		"-c:v", setting.Codec,
-		"-preset", setting.Preset,
-		"-crf", strconv.Itoa(setting.CRF),
-		"-c:a", "aac",
-		outputPath,
-	)
+	args := []string{"-y", "-i", inputPath,
+		"-c:v", setting.Codec, // video codec
+		"-preset", setting.Preset, // compression speed/efficiency tradeoff
+		"-crf", strconv.Itoa(setting.CRF), // quality level
+		"-c:a", "aac", // default audio codec
+	}
+
+	if setting.Resolution != "" {
+		args = append(args, "-vf", "scale="+setting.Resolution) // set resolution
+	}
+	if setting.Bitrate != "" {
+		args = append(args, "-b:v", setting.Bitrate) // set bitrate
+	}
+	args = append(args, outputPath)
+
+	cmd := exec.Command("ffmpeg", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Get().Error("ffmpeg command failed", zap.Error(err), zap.String("output", string(out)))
