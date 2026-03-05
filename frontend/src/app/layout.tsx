@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import Script from "next/script";
 
 const spaceGrotesk = Space_Grotesk({
 	variable: "--font-space-grotesk",
@@ -39,6 +40,13 @@ export default function RootLayout({
 		<html lang="en">
 			<head>
 				<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+				{process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
 			</head>
 			<body className={appShellClassName}>{children}</body>
 		</html>
