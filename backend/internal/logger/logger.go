@@ -32,7 +32,7 @@ func Init() error {
 
 	log, err = cfg.Build(zap.AddStacktrace(zap.ErrorLevel))
 	if err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
+		return fmt.Errorf("build logger: %w", err)
 	}
 	SetLogLevel(os.Getenv("LOG_LEVEL"))
 
