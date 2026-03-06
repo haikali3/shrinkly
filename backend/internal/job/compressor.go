@@ -14,23 +14,23 @@ import (
 	"go.uber.org/zap"
 )
 
-type Manager struct {
+type Compressor struct {
 	queries *db.Queries
 	pool    *worker.Pool
 	Cfg     *config.Config
 }
 
-func NewManager(queries *db.Queries, pool *worker.Pool, cfg *config.Config) *Manager {
-	return &Manager{
+func NewCompressor(queries *db.Queries, pool *worker.Pool, cfg *config.Config) *Compressor {
+	return &Compressor{
 		queries: queries,
 		pool:    pool,
 		Cfg:     cfg,
 	}
 }
 
-func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting CompressionSettings) (*Report, error) {
+func (c *Compressor) CreateBatch(ctx context.Context, filePath []string, setting CompressionSettings) (*Report, error) {
 	//  1. create batch record
-	batch, err := m.queries.CreateBatch(ctx, db.CreateBatchParams{
+	batch, err := c.queries.CreateBatch(ctx, db.CreateBatchParams{
 		TotalFiles: int32(len(filePath)),
 		Status:     "pending",
 	})
@@ -45,7 +45,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 		if err != nil {
 			return nil, fmt.Errorf("stat file %q: %w", path, err)
 		}
-		video, err := m.queries.CreateVideo(ctx, db.CreateVideoParams{
+		video, err := c.queries.CreateVideo(ctx, db.CreateVideoParams{
 			BatchID:          batch.ID,
 			OriginalFilename: path,
 			OriginalSize:     info.Size(),
@@ -63,7 +63,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 		tasks[i] = worker.Task{
 			VideoID:    video.ID,
 			InputPath:  video.OriginalFilename,
-			OutputPath: m.Cfg.OutputDir + "/" + filepath.Base(video.OriginalFilename),
+			OutputPath: c.Cfg.OutputDir + "/" + filepath.Base(video.OriginalFilename),
 			Settings: worker.CompressionSettings{
 				Codec:  setting.Codec,
 				CRF:    setting.CRF,
@@ -73,12 +73,12 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 	}
 
 	// 4. send to pool
-	results := m.pool.Process(tasks)
+	results := c.pool.Process(tasks)
 
 	// 5. update video records based on results
 	for i, r := range results {
 		if r.Success {
-			if err := m.queries.UpdateVideoSizes(ctx, db.UpdateVideoSizesParams{
+			if err := c.queries.UpdateVideoSizes(ctx, db.UpdateVideoSizesParams{
 				ID:                r.VideoID,
 				OptimizedFilename: pgtype.Text{String: tasks[i].OutputPath, Valid: true},
 				OptimizedSize:     pgtype.Int8{Int64: r.OptimizedSize, Valid: true},
@@ -89,7 +89,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 
 		} else {
 			logger.Get().Error("encode failed", zap.Int32("video_id", r.VideoID), zap.Error(r.Error))
-			if err := m.queries.UpdateVideoStatus(ctx, db.UpdateVideoStatusParams{
+			if err := c.queries.UpdateVideoStatus(ctx, db.UpdateVideoStatusParams{
 				ID:           r.VideoID,
 				Status:       "failed",
 				ErrorMessage: pgtype.Text{String: r.Error.Error(), Valid: true},
@@ -111,7 +111,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 	}
 
 	// 6. update batch record
-	if err := m.queries.UpdateBatchProgress(ctx, db.UpdateBatchProgressParams{
+	if err := c.queries.UpdateBatchProgress(ctx, db.UpdateBatchProgressParams{
 		ID:                 batch.ID,
 		ProcessedFiles:     processedCount,
 		TotalOriginalSize:  totalOriginalSize,
@@ -121,24 +121,24 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 	}
 
 	// 7. update batch status
-	if err := m.queries.UpdateBatchStatus(ctx, db.UpdateBatchStatusParams{
+	if err := c.queries.UpdateBatchStatus(ctx, db.UpdateBatchStatusParams{
 		ID:     batch.ID,
 		Status: "completed",
 	}); err != nil {
 		return nil, fmt.Errorf("update batch status %d: %w", batch.ID, err)
 	}
 
-	return m.GetBatchReport(ctx, batch.ID)
+	return c.GetBatchReport(ctx, batch.ID)
 }
 
-func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, error) {
+func (c *Compressor) GetBatchReport(ctx context.Context, batchID int32) (*Report, error) {
 	// 1. fetch the batch + videos
-	batch, err := m.queries.GetBatch(ctx, batchID)
+	batch, err := c.queries.GetBatch(ctx, batchID)
 	if err != nil {
 		return nil, fmt.Errorf("get batch %d: %w", batchID, err)
 	}
 
-	videos, err := m.queries.GetVideosByBatch(ctx, batchID)
+	videos, err := c.queries.GetVideosByBatch(ctx, batchID)
 	if err != nil {
 		return nil, fmt.Errorf("get videos for batch %d: %w", batchID, err)
 	}

@@ -57,7 +57,7 @@ func run() error {
 
 	// init worker pool + job manager
 	workerPool := worker.NewPool(cfg.MaxWorkers)
-	manager := job.NewManager(queries, workerPool, cfg)
+	manager := job.NewCompressor(queries, workerPool, cfg)
 
 	// wire router + start http server
 	handler := api.NewHandler(manager, cfg)

@@ -30,11 +30,11 @@ type BatchReporter interface {
 }
 
 var (
-	_ BatchCreator  = (*job.Manager)(nil)
-	_ BatchReporter = (*job.Manager)(nil)
+	_ BatchCreator  = (*job.Compressor)(nil)
+	_ BatchReporter = (*job.Compressor)(nil)
 )
 
-func NewHandler(m *job.Manager, cfg *config.Config) *Handler {
+func NewHandler(m *job.Compressor, cfg *config.Config) *Handler {
 	return &Handler{Creator: m, Reporter: m, Cfg: cfg}
 }
 
