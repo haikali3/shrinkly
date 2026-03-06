@@ -34,13 +34,6 @@ func main() {
 
 	// connect to db
 
-	// conn, err := pgx.Connect(context.Background(), cfg.DatabaseURL)
-	// if err != nil {
-	// 	logger.Get().Fatal("failed to connect to database", zap.Error(err))
-	// }
-	// defer conn.Close(context.Background())
-	// queries := db.New(conn)
-
 	dbPool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		logger.Get().Fatal("failed to create database pool", zap.Error(err))
