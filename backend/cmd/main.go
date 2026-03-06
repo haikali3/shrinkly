@@ -28,7 +28,9 @@ func run() error {
 	_ = godotenv.Load()
 
 	// init logger
-	logger.Init()
+	if err := logger.Init(); err != nil {
+		return fmt.Errorf("init logger: %w", err)
+	}
 	defer logger.Sync()
 
 	cfg, err := config.Load()

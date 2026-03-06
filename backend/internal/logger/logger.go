@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -14,7 +15,7 @@ var (
 	log   *zap.Logger
 )
 
-func Init() {
+func Init() error {
 	level = zap.NewAtomicLevel()
 
 	env := os.Getenv("APP_ENV")
@@ -25,8 +26,17 @@ func Init() {
 		cfg = zap.NewDevelopmentConfig()
 		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	}
-	log, _ = cfg.Build(zap.AddStacktrace(zap.ErrorLevel))
+
+	cfg.Level = level
+	var err error
+
+	log, err = cfg.Build(zap.AddStacktrace(zap.ErrorLevel))
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
 	SetLogLevel(os.Getenv("LOG_LEVEL"))
+
+	return nil
 }
 
 func SetLogLevel(levelStr string) {
@@ -49,7 +59,7 @@ func SetLogLevel(levelStr string) {
 
 func Get() *zap.Logger {
 	if log == nil {
-		Init()
+		return zap.NewNop()
 	}
 	return log
 }
