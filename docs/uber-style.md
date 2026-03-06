@@ -39,15 +39,3 @@ Small but useful:
 - filePaths can preallocate from len(files) at handler.go:69
 - Process([]Task) returns make(..., len(tasks)) even when empty at pool.go:34; the guide prefers nil
 for empty slices in many cases
-
-8. Missing tests and lint enforcement
-There are no *_test.go files in the repo. This style guide assumes go vet, errcheck, staticcheck,
-revive, and goimports are part of the workflow. Adding even a small set of tests around
-CompressionSettings, GetCompressionOptions, and the worker pool would pay off quickly.
-
-If you want the practical order, I’d do it this way:
-
-1. Refactor main.go to run() error
-2. Clean up error handling and path/file handling in handler.go
-3. Stop double-logging in manager.go
-4. Add lint config plus a first batch of tests

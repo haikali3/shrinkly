@@ -38,21 +38,28 @@ func (h *Handler) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// 1. parse multipart upload
 	logger.Get().Info("content_type", zap.String("ct", r.Header.Get("Content-Type")))
-	err := r.ParseMultipartForm(32 << 20) // 32MB max memory
-	if err != nil {
+
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		logger.Get().Error("failed to parse multipart form", zap.Error(err))
 		writeJSON(w, http.StatusBadRequest, "failed to parse form", nil)
 		return
 	}
 
-	// 2. validate compressing settings
-	crf, _ := strconv.Atoi(r.FormValue("crf"))
 	settings := job.CompressionSettings{
 		Codec:      r.FormValue("codec"),
-		CRF:        crf,
 		Preset:     r.FormValue("preset"),
 		Resolution: r.FormValue("resolution"),
 		Bitrate:    r.FormValue("bitrate"),
+	}
+	// 2. validate compressing settings
+	if crfValue := r.FormValue("crf"); crfValue != "" {
+		crf, err := strconv.Atoi(crfValue)
+		if err != nil {
+			logger.Get().Error("invalid CRF value", zap.Error(err))
+			writeJSON(w, http.StatusBadRequest, "invalid CRF value", nil)
+			return
+		}
+		settings.CRF = crf
 	}
 
 	settings.SetDefaults()
@@ -102,6 +109,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleBatchReport(w http.ResponseWriter, r *http.Request) {
 	// 1. parse batchID from url
 	idStr := chi.URLParam(r, "id")
+
 	batchID, err := strconv.Atoi(idStr)
 	if err != nil {
 		logger.Get().Error("failed to parse batch id", zap.Error(err))
