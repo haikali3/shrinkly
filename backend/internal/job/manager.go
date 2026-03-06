@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"shrinkly/backend/config"
@@ -34,8 +35,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 		Status:     "pending",
 	})
 	if err != nil {
-		logger.Get().Error("failed to create batch", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("create batch: %w", err)
 	}
 
 	// 2. create a video record for each file
@@ -43,8 +43,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 	for _, path := range filePath {
 		info, err := os.Stat(path)
 		if err != nil {
-			logger.Get().Error("failed to stat file", zap.String("path", path), zap.Error(err))
-			return nil, err
+			return nil, fmt.Errorf("stat file %q: %w", path, err)
 		}
 		video, err := m.queries.CreateVideo(ctx, db.CreateVideoParams{
 			BatchID:          batch.ID,
@@ -53,8 +52,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 			Status:           "pending",
 		})
 		if err != nil {
-			logger.Get().Error("failed to create video", zap.Error(err))
-			return nil, err
+			return nil, fmt.Errorf("create video for %q: %w", path, err)
 		}
 		videos = append(videos, video)
 	}
@@ -119,8 +117,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 		TotalOriginalSize:  totalOriginalSize,
 		TotalOptimizedSize: totalOptimizedSize,
 	}); err != nil {
-		logger.Get().Error("failed to update batch progress", zap.Int32("batch_id", batch.ID), zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("update batch progress %d: %w", batch.ID, err)
 	}
 
 	// 7. update batch status
@@ -128,8 +125,7 @@ func (m *Manager) CreateBatch(ctx context.Context, filePath []string, setting Co
 		ID:     batch.ID,
 		Status: "completed",
 	}); err != nil {
-		logger.Get().Error("failed to update batch status", zap.Int32("batch_id", batch.ID), zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("update batch status %d: %w", batch.ID, err)
 	}
 
 	return m.GetBatchReport(ctx, batch.ID)
@@ -139,14 +135,12 @@ func (m *Manager) GetBatchReport(ctx context.Context, batchID int32) (*Report, e
 	// 1. fetch the batch + videos
 	batch, err := m.queries.GetBatch(ctx, batchID)
 	if err != nil {
-		logger.Get().Error("failed to get batch", zap.Int32("batch_id", batchID), zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("get batch %d: %w", batchID, err)
 	}
 
 	videos, err := m.queries.GetVideosByBatch(ctx, batchID)
 	if err != nil {
-		logger.Get().Error("failed to get videos for batch", zap.Int32("batch_id", batchID), zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("get videos for batch %d: %w", batchID, err)
 	}
 
 	var failedCount int32
