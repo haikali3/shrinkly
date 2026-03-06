@@ -33,7 +33,7 @@ func NewHandler(m *job.Manager, cfg *config.Config) *Handler {
 	return &Handler{Creator: m, Reporter: m, Cfg: cfg}
 }
 
-func (h *Handler) HandleHealthCheck(w http.ResponseWriter) {
+func (h *Handler) HandleHealthCheck(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, "ok", nil)
 }
 
@@ -123,7 +123,7 @@ func (h *Handler) HandleBatchReport(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, "batch report retrieved", report)
 }
 
-func (h *Handler) HandleCompressionOptions(w http.ResponseWriter) {
+func (h *Handler) HandleCompressionOptions(w http.ResponseWriter, _ *http.Request) {
 	options := job.GetCompressionOptions()
 	writeJSON(w, http.StatusOK, "compression options retrieved", options)
 }
