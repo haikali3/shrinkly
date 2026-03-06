@@ -25,7 +25,9 @@ func main() {
 }
 
 func run() error {
-	_ = godotenv.Load()
+	if err := godotenv.Load(); err != nil {
+		return fmt.Errorf("load environment variables: %w", err)
+	}
 
 	// init logger
 	if err := logger.Init(); err != nil {
