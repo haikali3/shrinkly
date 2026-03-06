@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"shrinkly/backend/config"
@@ -17,26 +18,35 @@ import (
 )
 
 func main() {
-
-	godotenv.Load()
-	cfg, err := config.Load()
-	if err != nil {
-		logger.Get().Fatal("failed to load config", zap.Error(err))
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
+}
 
-	// create input + output directories if they don't exist
-	os.MkdirAll(cfg.InputDir, 0755)
-	os.MkdirAll(cfg.OutputDir, 0755)
+func run() error {
+	_ = godotenv.Load()
 
 	// init logger
 	logger.Init()
 	defer logger.Sync()
 
-	// connect to db
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	// create input + output directories if they don't exist
+	if err := os.MkdirAll(cfg.InputDir, 0755); err != nil {
+		return fmt.Errorf("create input directory: %w", err)
+	}
+	if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
+		return fmt.Errorf("create output directory: %w", err)
+	}
 
 	dbPool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
-		logger.Get().Fatal("failed to create database pool", zap.Error(err))
+		return fmt.Errorf("connect to database: %w", err)
 	}
 	defer dbPool.Close()
 	queries := db.New(dbPool)
@@ -48,8 +58,10 @@ func main() {
 	// wire router + start http server
 	handler := api.NewHandler(manager, cfg)
 	router := api.NewRouter(handler, cfg.AllowedOrigins)
-	logger.Get().Info("server started", zap.String("port", cfg.Port))
+	logger.Get().Info("starting server", zap.String("port", cfg.Port))
+
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
-		logger.Get().Error("failed to start server", zap.Error(err))
+		return fmt.Errorf("start server: %w", err)
 	}
+	return nil
 }
