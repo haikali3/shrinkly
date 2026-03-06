@@ -41,7 +41,9 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// 1. parse multipart upload
 	logger.Get().Info("content_type", zap.String("ct", r.Header.Get("Content-Type")))
 
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	const maxMultipartMemory = 32 << 20
+
+	if err := r.ParseMultipartForm(maxMultipartMemory); err != nil {
 		logger.Get().Error("failed to parse multipart form", zap.Error(err))
 		writeJSON(w, http.StatusBadRequest, "failed to parse form", nil)
 		return
@@ -75,7 +77,7 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	files := r.MultipartForm.File["files"]
 	logger.Get().Info("received files", zap.Int("count", len(files)))
 	// 3. save files to InputDir
-	var filePaths []string
+	filePaths := make([]string, 0, len(files))
 	for _, fileHeader := range files {
 		dstPath, err := h.saveUploadedFile(fileHeader)
 
@@ -131,7 +133,7 @@ func (h *Handler) HandleCompressionOptions(w http.ResponseWriter, _ *http.Reques
 func (h *Handler) saveUploadedFile(fileHeader *multipart.FileHeader) (string, error) {
 	src, err := fileHeader.Open()
 	if err != nil {
-		return "", fmt.Errorf("open the uploaded file: %w", err)
+		return "", fmt.Errorf("open uploaded file: %w", err)
 	}
 	defer src.Close()
 
