@@ -1,12 +1,10 @@
 package worker
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
-	"shrinkly/backend/internal/logger"
 	"strconv"
-
-	"go.uber.org/zap"
 )
 
 type CompressionSettings struct {
@@ -21,8 +19,7 @@ func Encode(inputPath, outputPath string, setting *CompressionSettings) (origina
 	// 1. get original file size
 	info, err := os.Stat(inputPath)
 	if err != nil {
-		logger.Get().Error("failed to stat input file", zap.String("path", inputPath), zap.Error(err))
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("stat input %q: %w", inputPath, err)
 	}
 
 	originalSize = info.Size()
@@ -46,14 +43,12 @@ func Encode(inputPath, outputPath string, setting *CompressionSettings) (origina
 	cmd := exec.Command("ffmpeg", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		logger.Get().Error("ffmpeg command failed", zap.Error(err), zap.String("output", string(out)))
-		return originalSize, 0, err
+		return originalSize, 0, fmt.Errorf("ffmpeg %q: %w; output: %s", inputPath, err, out)
 	}
 	// 3. get optimized file size
 	info, err = os.Stat(outputPath)
 	if err != nil {
-		logger.Get().Error("failed to stat output file", zap.String("path", outputPath), zap.Error(err))
-		return originalSize, 0, err
+		return originalSize, 0, fmt.Errorf("stat output %q: %w", outputPath, err)
 	}
 	optimizedSize = info.Size()
 
