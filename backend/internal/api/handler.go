@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"mime/multipart"
 	"net/http"
 	"shrinkly/backend/config"
 	"shrinkly/backend/internal/job"
@@ -75,21 +77,13 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// 3. save files to InputDir
 	var filePaths []string
 	for _, fileHeader := range files {
-		src, err := fileHeader.Open()
-		if err != nil {
-			logger.Get().Error("failed to open uploaded file", zap.Error(err))
-			writeJSON(w, http.StatusInternalServerError, "failed to open uploaded file", nil)
-			return
-		}
+		dstPath, err := h.saveUploadedFile(fileHeader)
 
-		dstPath := h.Cfg.InputDir + "/" + fileHeader.Filename
-		if err := storage.SaveFile(src, dstPath); err != nil {
-			src.Close()
-			logger.Get().Error("failed to save uploaded file", zap.Error(err))
+		if err != nil {
+			logger.Get().Error("save uploaded file", zap.Error(err))
 			writeJSON(w, http.StatusInternalServerError, "failed to save uploaded file", nil)
 			return
 		}
-		src.Close()
 
 		filePaths = append(filePaths, dstPath)
 	}
@@ -132,4 +126,19 @@ func (h *Handler) HandleBatchReport(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleCompressionOptions(w http.ResponseWriter, r *http.Request) {
 	options := job.GetCompressionOptions()
 	writeJSON(w, http.StatusOK, "compression options retrieved", options)
+}
+
+func (h *Handler) saveUploadedFile(fileHeader *multipart.FileHeader) (string, error) {
+	src, err := fileHeader.Open()
+	if err != nil {
+		return "", fmt.Errorf("open the uploaded file: %w", err)
+	}
+	defer src.Close()
+
+	dstPath := h.Cfg.InputDir + "/" + fileHeader.Filename
+	if err := storage.SaveFile(src, dstPath); err != nil {
+		return "", fmt.Errorf("save uploaded file: %w", err)
+	}
+
+	return dstPath, nil
 }
