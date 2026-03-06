@@ -19,8 +19,8 @@ shrinkly/
   │       ├── migrations/
   │       │   └── 001_init.sql             # Batch + Video tables
   │       ├── db.go                # DB connection setup
-  │       ├── batch.go             # Batch table queries
-  │       └── video.go             # Video table queries
+  │       ├── batch.sql.go             # Batch table queries from sqlc
+  │       └── video.sql.go             # Video table queries from sqlc
   ├── config/
   │   └── config.go                # App config (concurrency, CRF, paths)
   ├── docs/
