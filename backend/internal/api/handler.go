@@ -29,6 +29,11 @@ type BatchReporter interface {
 	GetBatchReport(ctx context.Context, batchID int32) (*job.Report, error)
 }
 
+var (
+	_ BatchCreator  = (*job.Manager)(nil)
+	_ BatchReporter = (*job.Manager)(nil)
+)
+
 func NewHandler(m *job.Manager, cfg *config.Config) *Handler {
 	return &Handler{Creator: m, Reporter: m, Cfg: cfg}
 }
