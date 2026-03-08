@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"shrinkly/backend/config"
+	"shrinkly/backend/internal/db"
 	"shrinkly/backend/internal/job"
 	"shrinkly/backend/internal/logger"
 	"shrinkly/backend/internal/storage"
@@ -19,6 +20,7 @@ type Handler struct {
 	Creator  BatchCreator
 	Reporter BatchReporter
 	Cfg      *config.Config
+	Queries  *db.Queries
 }
 
 type BatchCreator interface {
@@ -29,13 +31,17 @@ type BatchReporter interface {
 	GetBatchReport(ctx context.Context, batchID int32) (*job.Report, error)
 }
 
+type VideoFetcher interface {
+	GetVideoByID(ctx context.Context, videoID string) (db.Video, error)
+}
+
 var (
 	_ BatchCreator  = (*job.Compressor)(nil)
 	_ BatchReporter = (*job.Compressor)(nil)
 )
 
-func NewHandler(m *job.Compressor, cfg *config.Config) *Handler {
-	return &Handler{Creator: m, Reporter: m, Cfg: cfg}
+func NewHandler(m *job.Compressor, cfg *config.Config, queries *db.Queries) *Handler {
+	return &Handler{Creator: m, Reporter: m, Cfg: cfg, Queries: queries}
 }
 
 func (h *Handler) HandleHealthCheck(w http.ResponseWriter, _ *http.Request) {
@@ -152,7 +158,19 @@ func (h *Handler) saveUploadedFile(fileHeader *multipart.FileHeader) (string, er
 
 func (h *Handler) HandleDownload(w http.ResponseWriter, r *http.Request) {
 	// 1.parse videoID from URL
+	idStr := chi.URLParam(r, "id")
+	videoID, err := strconv.Atoi(idStr)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, "invalid video ID", nil)
+		return
+	}
 	// 2.fetch that video from DB
+	video, err := h.Queries.GetVideo(r.Context(), int32(videoID))
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, "video not found", nil)
+		return
+	}
+
 	// 3. ensure status == "completed"
 	// 4. ensure optimized_filename isnt empty and smaller than original filename
 	// 5. serve the file from disk with attachment header

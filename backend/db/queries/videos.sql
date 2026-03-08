@@ -4,7 +4,7 @@ INSERT INTO videos(batch_id, original_filename, original_size, status)
 RETURNING
   *;
 
--- name: GetVideo :one
+-- name: GetVideoByID :one
 SELECT
   *
 FROM

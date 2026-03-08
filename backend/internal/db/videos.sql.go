@@ -48,7 +48,7 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 	return i, err
 }
 
-const getVideo = `-- name: GetVideo :one
+const getVideoByID = `-- name: GetVideoByID :one
 SELECT
   id, batch_id, original_filename, optimized_filename, original_size, optimized_size, status, error_message, created_at, updated_at
 FROM
@@ -57,8 +57,8 @@ WHERE
   id = $1
 `
 
-func (q *Queries) GetVideo(ctx context.Context, id int32) (Video, error) {
-	row := q.db.QueryRow(ctx, getVideo, id)
+func (q *Queries) GetVideoByID(ctx context.Context, id int32) (Video, error) {
+	row := q.db.QueryRow(ctx, getVideoByID, id)
 	var i Video
 	err := row.Scan(
 		&i.ID,

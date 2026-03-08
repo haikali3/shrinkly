@@ -17,7 +17,7 @@ func NewRouter(h *Handler, allowedOrigins string) *chi.Mux {
 
 	r.Get("/options", h.HandleCompressionOptions)
 
-	r.Get("/download", h.HandleDownload)
+	r.Get("/download/{videoId}", h.HandleDownload)
 
 	return r
 }
