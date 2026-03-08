@@ -1,5 +1,6 @@
 "use client"
 
+import { useMutation, useQuery } from "@tanstack/react-query"
 import {
   ChevronDown,
   Cog,
@@ -7,7 +8,7 @@ import {
   LoaderCircle,
   Upload,
 } from "lucide-react"
-import { useEffect, useRef, useState, type DragEvent } from "react"
+import { useRef, useState, type DragEvent } from "react"
 
 import { Button } from "@/components/ui/button"
 
@@ -79,6 +80,60 @@ const resolutionOptions = [
   { label: "360p width", value: "640:-2" },
 ] as const
 
+async function parseResponse<T>(response: Response): Promise<T> {
+  const payload = (await response.json()) as ApiResponse<T>
+
+  if (!response.ok || !payload.data) {
+    throw new Error(payload.message || "Something went wrong.")
+  }
+
+  return payload.data
+}
+
+async function getCompressionOptions() {
+  const response = await fetch(`${API_BASE_URL}/options`)
+  return parseResponse<CompressionOptions>(response)
+}
+
+async function getBatchReport(batchId: number) {
+  const response = await fetch(`${API_BASE_URL}/batch/${batchId}`)
+  return parseResponse<BatchReport>(response)
+}
+
+async function createBatch({
+  files,
+  codec,
+  preset,
+  crf,
+  resolution,
+  bitrate,
+}: {
+  files: File[]
+  codec: string
+  preset: string
+  crf: number
+  resolution: string
+  bitrate: string
+}) {
+  const formData = new FormData()
+  formData.set("codec", codec)
+  formData.set("preset", preset)
+  formData.set("crf", String(crf))
+  formData.set("resolution", resolution)
+  formData.set("bitrate", bitrate)
+
+  for (const file of files) {
+    formData.append("files", file)
+  }
+
+  const response = await fetch(`${API_BASE_URL}/batch`, {
+    method: "POST",
+    body: formData,
+  })
+
+  return parseResponse<BatchReport>(response)
+}
+
 function formatBytes(bytes: number) {
   if (bytes <= 0) return "0 B"
 
@@ -90,6 +145,10 @@ function formatBytes(bytes: number) {
   const value = bytes / 1024 ** exponent
 
   return `${value.toFixed(value >= 10 || exponent === 0 ? 0 : 1)} ${units[exponent]}`
+}
+
+function isTerminalStatus(status: string) {
+  return status === "completed" || status === "failed"
 }
 
 function Field({
@@ -123,14 +182,6 @@ export default function Page() {
   const [showAdvanced, setShowAdvanced] = useState(true)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [options, setOptions] = useState<CompressionOptions>(fallbackOptions)
-  const [optionsLoading, setOptionsLoading] = useState(true)
-  const [optionsError, setOptionsError] = useState<string | null>(null)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [batchId, setBatchId] = useState<number | null>(null)
-  const [report, setReport] = useState<BatchReport | null>(null)
-
   const [codec, setCodec] = useState("libx265")
   const [preset, setPreset] = useState("medium")
   const [crf, setCrf] = useState(32)
@@ -138,155 +189,48 @@ export default function Page() {
     useState<(typeof resolutionOptions)[number]["value"]>("")
   const [bitrate, setBitrate] = useState("")
 
-  useEffect(() => {
-    let cancelled = false
+  const optionsQuery = useQuery({
+    queryKey: ["compression-options"],
+    queryFn: getCompressionOptions,
+  })
 
-    async function loadOptions() {
-      try {
-        setOptionsLoading(true)
-        setOptionsError(null)
+  const uploadMutation = useMutation({
+    mutationFn: createBatch,
+  })
 
-        const response = await fetch(`${API_BASE_URL}/options`, {
-          method: "GET",
-        })
+  const batchId = uploadMutation.data?.batch_id
 
-        const payload =
-          (await response.json()) as ApiResponse<CompressionOptions>
-        if (!response.ok || !payload.data) {
-          throw new Error(
-            payload.message || "Failed to load compression options"
-          )
-        }
+  const reportQuery = useQuery({
+    queryKey: ["batch-report", batchId],
+    queryFn: () => getBatchReport(batchId as number),
+    enabled: batchId !== undefined,
+    placeholderData: uploadMutation.data,
+    refetchInterval: (query) => {
+      const report = query.state.data as BatchReport | undefined
+      return report && isTerminalStatus(report.status) ? false : 1500
+    },
+  })
 
-        if (cancelled) return
-
-        setOptions(payload.data)
-        setCodec((current) =>
-          payload.data?.codecs.includes(current)
-            ? current
-            : (payload.data?.codecs[0] ?? fallbackOptions.codecs[0])
-        )
-        setPreset((current) =>
-          payload.data?.presets.includes(current)
-            ? current
-            : (payload.data?.presets[0] ?? fallbackOptions.presets[0])
-        )
-        setCrf((current) => {
-          const min =
-            payload.data?.crf_range.min ?? fallbackOptions.crf_range.min
-          const max =
-            payload.data?.crf_range.max ?? fallbackOptions.crf_range.max
-          return Math.min(Math.max(current, min), max)
-        })
-      } catch (error) {
-        if (cancelled) return
-
-        setOptions(fallbackOptions)
-        setOptionsError(
-          error instanceof Error
-            ? error.message
-            : "Failed to load compression options"
-        )
-      } finally {
-        if (!cancelled) {
-          setOptionsLoading(false)
-        }
-      }
-    }
-
-    loadOptions()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    if (batchId === null) return
-
-    let cancelled = false
-    let timer: ReturnType<typeof setTimeout> | null = null
-
-    async function pollBatch() {
-      try {
-        const response = await fetch(`${API_BASE_URL}/batch/${batchId}`, {
-          method: "GET",
-        })
-        const payload = (await response.json()) as ApiResponse<BatchReport>
-
-        if (!response.ok || !payload.data) {
-          throw new Error(payload.message || "Failed to fetch batch status")
-        }
-
-        if (cancelled) return
-
-        setReport(payload.data)
-
-        if (
-          payload.data.status !== "completed" &&
-          payload.data.status !== "failed"
-        ) {
-          timer = setTimeout(pollBatch, 1500)
-        }
-      } catch (error) {
-        if (cancelled) return
-        setSubmitError(
-          error instanceof Error ? error.message : "Failed to poll batch"
-        )
-      }
-    }
-
-    pollBatch()
-
-    return () => {
-      cancelled = true
-      if (timer) clearTimeout(timer)
-    }
-  }, [batchId])
-
-  async function handleUpload() {
-    if (selectedFiles.length === 0) {
-      setSubmitError("Choose at least one video file first.")
-      return
-    }
-
-    try {
-      setIsSubmitting(true)
-      setSubmitError(null)
-      setReport(null)
-      setBatchId(null)
-
-      const formData = new FormData()
-      formData.set("codec", codec)
-      formData.set("preset", preset)
-      formData.set("crf", String(crf))
-      formData.set("resolution", resolution)
-      formData.set("bitrate", bitrate)
-
-      for (const file of selectedFiles) {
-        formData.append("files", file)
-      }
-
-      const response = await fetch(`${API_BASE_URL}/batch`, {
-        method: "POST",
-        body: formData,
-      })
-      const payload = (await response.json()) as ApiResponse<BatchReport>
-
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.message || "Failed to create batch")
-      }
-
-      setBatchId(payload.data.batch_id)
-      setReport(payload.data)
-    } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to upload video"
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  const options = optionsQuery.data ?? fallbackOptions
+  const codecValue = options.codecs.includes(codec)
+    ? codec
+    : (options.codecs[0] ?? fallbackOptions.codecs[0])
+  const presetValue = options.presets.includes(preset)
+    ? preset
+    : (options.presets[0] ?? fallbackOptions.presets[0])
+  const minCrf = options.crf_range.min ?? fallbackOptions.crf_range.min
+  const maxCrf = options.crf_range.max ?? fallbackOptions.crf_range.max
+  const crfValue = Math.min(Math.max(crf, minCrf), maxCrf)
+  const report = reportQuery.data ?? uploadMutation.data ?? null
+  const totalSelectedSize = selectedFiles.reduce(
+    (sum, file) => sum + file.size,
+    0
+  )
+  const userError =
+    optionsQuery.error?.message ||
+    uploadMutation.error?.message ||
+    reportQuery.error?.message ||
+    null
 
   function handleFiles(files: FileList | null) {
     if (!files) return
@@ -305,7 +249,8 @@ export default function Page() {
 
       return next
     })
-    setSubmitError(null)
+
+    uploadMutation.reset()
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
@@ -314,12 +259,18 @@ export default function Page() {
     handleFiles(event.dataTransfer.files)
   }
 
-  const minCrf = options.crf_range.min ?? fallbackOptions.crf_range.min
-  const maxCrf = options.crf_range.max ?? fallbackOptions.crf_range.max
-  const totalSelectedSize = selectedFiles.reduce(
-    (sum, file) => sum + file.size,
-    0
-  )
+  function handleUpload() {
+    if (selectedFiles.length === 0) return
+
+    uploadMutation.mutate({
+      files: selectedFiles,
+      codec: codecValue,
+      preset: presetValue,
+      crf: crfValue,
+      resolution,
+      bitrate,
+    })
+  }
 
   return (
     <main className="min-h-svh bg-background">
@@ -386,12 +337,21 @@ export default function Page() {
                   className="h-12 rounded-xl px-6 text-base font-medium"
                   type="button"
                   onClick={handleUpload}
-                  disabled={isSubmitting || selectedFiles.length === 0}
+                  disabled={
+                    uploadMutation.isPending ||
+                    reportQuery.isFetching ||
+                    selectedFiles.length === 0
+                  }
                 >
-                  {isSubmitting ? (
+                  {uploadMutation.isPending ? (
                     <>
                       <LoaderCircle className="size-4 animate-spin" />
                       Uploading...
+                    </>
+                  ) : reportQuery.isFetching && report ? (
+                    <>
+                      <LoaderCircle className="size-4 animate-spin" />
+                      Compressing...
                     </>
                   ) : (
                     "Compress Now"
@@ -428,9 +388,9 @@ export default function Page() {
                 </div>
               ) : null}
 
-              {submitError ? (
+              {userError ? (
                 <p className="mt-4 text-sm text-red-600 dark:text-red-400">
-                  {submitError}
+                  {userError}
                 </p>
               ) : null}
             </div>
@@ -469,9 +429,10 @@ export default function Page() {
                 Video Quality &amp; Size
               </div>
 
-              {optionsError ? (
+              {optionsQuery.isError ? (
                 <p className="mt-4 text-sm text-amber-700 dark:text-amber-400">
-                  {optionsError}. Showing fallback values.
+                  Some settings could not be loaded, so default options are
+                  being used instead.
                 </p>
               ) : null}
 
@@ -481,9 +442,9 @@ export default function Page() {
                   hint="Choose the video format you want to use."
                 >
                   <select
-                    value={codec}
+                    value={codecValue}
                     onChange={(event) => setCodec(event.target.value)}
-                    disabled={optionsLoading}
+                    disabled={optionsQuery.isLoading}
                     className="h-12 w-full rounded-xl border border-stone-200 bg-background px-4 text-sm transition outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70 dark:border-stone-700"
                   >
                     {options.codecs.map((option) => (
@@ -499,9 +460,9 @@ export default function Page() {
                   hint="Controls how fast the compression runs."
                 >
                   <select
-                    value={preset}
+                    value={presetValue}
                     onChange={(event) => setPreset(event.target.value)}
-                    disabled={optionsLoading}
+                    disabled={optionsQuery.isLoading}
                     className="h-12 w-full rounded-xl border border-stone-200 bg-background px-4 text-sm transition outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70 dark:border-stone-700"
                   >
                     {options.presets.map((option) => (
@@ -519,12 +480,12 @@ export default function Page() {
                   <div className="rounded-2xl border border-stone-200 bg-background px-4 py-4 dark:border-stone-700">
                     <div className="mb-3 flex items-center justify-between text-sm">
                       <span className="font-medium text-stone-900 dark:text-stone-100">
-                        {crf}
+                        {crfValue}
                       </span>
                       <span className="text-stone-500 dark:text-stone-400">
-                        {crf <= 20
+                        {crfValue <= 20
                           ? "Higher quality"
-                          : crf <= 28
+                          : crfValue <= 28
                             ? "Balanced"
                             : "Smaller size"}
                       </span>
@@ -534,9 +495,10 @@ export default function Page() {
                       min={minCrf}
                       max={maxCrf}
                       step="1"
-                      value={crf}
+                      value={crfValue}
                       onChange={(event) => setCrf(Number(event.target.value))}
                       className="w-full accent-primary"
+                      disabled={optionsQuery.isLoading}
                     />
                   </div>
                 </Field>
@@ -651,7 +613,7 @@ export default function Page() {
                     </a>
                   ) : (
                     <span className="text-sm text-stone-500 dark:text-stone-400">
-                      Waiting for output
+                      Working on it
                     </span>
                   )}
                 </div>
