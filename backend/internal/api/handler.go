@@ -159,7 +159,7 @@ func (h *Handler) saveUploadedFile(fileHeader *multipart.FileHeader) (string, er
 
 func (h *Handler) HandleDownload(w http.ResponseWriter, r *http.Request) {
 	// 1.parse videoID from URL
-	idStr := chi.URLParam(r, "id")
+	idStr := chi.URLParam(r, "videoId")
 	videoID, err := strconv.Atoi(idStr)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, "invalid video ID", nil)
