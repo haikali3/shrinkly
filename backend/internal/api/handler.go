@@ -149,3 +149,11 @@ func (h *Handler) saveUploadedFile(fileHeader *multipart.FileHeader) (string, er
 
 	return dstPath, nil
 }
+
+func (h *Handler) HandleDownload(w http.ResponseWriter, r *http.Request) {
+	// 1.parse videoID from URL
+	// 2.fetch that video from DB
+	// 3. ensure status == "completed"
+	// 4. ensure optimized_filename isnt empty and smaller than original filename
+	// 5. serve the file from disk with attachment header
+}
