@@ -179,3 +179,7 @@ func (c *Compressor) GetBatchReport(ctx context.Context, batchID int32) (*Report
 		Videos:             videosResults,
 	}, nil
 }
+
+func (c *Compressor) GetVideoByID(ctx context.Context, videoID int32) (db.Video, error) {
+	return c.queries.GetVideoByID(ctx, videoID)
+}

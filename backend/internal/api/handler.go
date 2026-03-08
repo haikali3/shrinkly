@@ -20,7 +20,7 @@ type Handler struct {
 	Creator  BatchCreator
 	Reporter BatchReporter
 	Cfg      *config.Config
-	Queries  *db.Queries
+	Fetcher  VideoFetcher
 }
 
 type BatchCreator interface {
@@ -31,13 +31,18 @@ type BatchReporter interface {
 	GetBatchReport(ctx context.Context, batchID int32) (*job.Report, error)
 }
 
+type VideoFetcher interface {
+	GetVideoByID(ctx context.Context, videoID int32) (db.Video, error)
+}
+
 var (
 	_ BatchCreator  = (*job.Compressor)(nil)
 	_ BatchReporter = (*job.Compressor)(nil)
+	_ VideoFetcher  = (*job.Compressor)(nil)
 )
 
-func NewHandler(m *job.Compressor, cfg *config.Config, queries *db.Queries) *Handler {
-	return &Handler{Creator: m, Reporter: m, Cfg: cfg, Queries: queries}
+func NewHandler(m *job.Compressor, cfg *config.Config) *Handler {
+	return &Handler{Creator: m, Reporter: m, Fetcher: m, Cfg: cfg}
 }
 
 func (h *Handler) HandleHealthCheck(w http.ResponseWriter, _ *http.Request) {
@@ -161,7 +166,7 @@ func (h *Handler) HandleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// 2.fetch that video from DB
-	video, err := h.Queries.GetVideoByID(r.Context(), int32(videoID))
+	video, err := h.Fetcher.GetVideoByID(r.Context(), int32(videoID))
 	if err != nil {
 		writeJSON(w, http.StatusNotFound, "video not found", nil)
 		return
