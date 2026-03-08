@@ -91,6 +91,11 @@ func (h *Handler) HandleCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// 3. save files to InputDir
 	filePaths := make([]string, 0, len(files))
 	for _, fileHeader := range files {
+		if fileHeader.Size > int64(h.Cfg.MaxFileSizeMB<<20) {
+			writeJSON(w, http.StatusBadRequest, fmt.Sprintf("file %s is too large. max size is %d MB", fileHeader.Filename, h.Cfg.MaxFileSizeMB), nil)
+			return
+		}
+
 		dstPath, err := h.saveUploadedFile(fileHeader)
 
 		if err != nil {

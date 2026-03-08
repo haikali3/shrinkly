@@ -13,6 +13,9 @@ type Config struct {
 	InputDir       string `env:"SHRINKLY_INPUT_DIR, default=./input"`
 	OutputDir      string `env:"SHRINKLY_OUTPUT_DIR, default=./output"`
 	AllowedOrigins string `env:"SHRINKLY_ALLOWED_ORIGINS, default=http://localhost:3000"`
+
+	MaxFileSizeMB     int `env:"SHRINKLY_MAX_FILE_SIZE_MB, default=100"`
+	RequestTimeoutSec int `env:"SHRINKLY_REQUEST_TIMEOUT_SEC, default=300"`
 }
 
 func Load() (*Config, error) {

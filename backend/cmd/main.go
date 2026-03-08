@@ -11,6 +11,7 @@ import (
 	"shrinkly/backend/internal/job"
 	"shrinkly/backend/internal/logger"
 	"shrinkly/backend/internal/worker"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -64,8 +65,15 @@ func run() error {
 	router := api.NewRouter(handler, cfg.AllowedOrigins)
 	logger.Get().Info("starting server", zap.String("port", cfg.Port))
 
-	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
+	server := &http.Server{
+		Addr:         ":" + cfg.Port,
+		Handler:      router,
+		ReadTimeout:  time.Duration(cfg.RequestTimeoutSec) * time.Second,
+		WriteTimeout: time.Duration(cfg.RequestTimeoutSec) * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("start server: %w", err)
 	}
+
 	return nil
 }
