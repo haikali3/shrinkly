@@ -185,8 +185,9 @@ func (h *Handler) HandleDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 5. serve the file from disk with attachment header
-	filepath := h.Cfg.OutputDir + "/" + video.OptimizedFilename.String
+	optimizedPath := video.OptimizedFilename.String
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`,
 		video.OptimizedFilename.String))
-	http.ServeFile(w, r, filepath)
+	http.ServeFile(w, r, optimizedPath)
+
 }
