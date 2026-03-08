@@ -31,10 +31,6 @@ type BatchReporter interface {
 	GetBatchReport(ctx context.Context, batchID int32) (*job.Report, error)
 }
 
-type VideoFetcher interface {
-	GetVideoByID(ctx context.Context, videoID string) (db.Video, error)
-}
-
 var (
 	_ BatchCreator  = (*job.Compressor)(nil)
 	_ BatchReporter = (*job.Compressor)(nil)
@@ -165,13 +161,27 @@ func (h *Handler) HandleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// 2.fetch that video from DB
-	video, err := h.Queries.GetVideo(r.Context(), int32(videoID))
+	video, err := h.Queries.GetVideoByID(r.Context(), int32(videoID))
 	if err != nil {
 		writeJSON(w, http.StatusNotFound, "video not found", nil)
 		return
 	}
 
 	// 3. ensure status == "completed"
+	if video.Status != "completed" {
+		writeJSON(w, http.StatusBadRequest, "video not ready for download", nil)
+		return
+	}
+
 	// 4. ensure optimized_filename isnt empty and smaller than original filename
+	if !video.OptimizedFilename.Valid || video.OptimizedFilename.String == "" {
+		writeJSON(w, http.StatusInternalServerError, "optimized filename missing", nil)
+		return
+	}
+
 	// 5. serve the file from disk with attachment header
+	filepath := h.Cfg.OutputDir + "/" + video.OptimizedFilename.String
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`,
+		video.OptimizedFilename.String))
+	http.ServeFile(w, r, filepath)
 }
